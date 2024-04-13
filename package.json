@@ -2,10 +2,16 @@
   "name": "plasmic-supabase",
   "version": "0.0.1",
   "description": "Code components to use Supabase as a backend for a Plasmic app",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",	
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@plasmicapp/data-sources": "^0.1.143",

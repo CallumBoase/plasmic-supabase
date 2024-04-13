@@ -1,9 +1,2 @@
-import { SupabaseProvider } from "./components/SupabaseProvider";
-import { SupabaseProviderMeta } from "./components/SupabaseProvider/registerComponentMeta";
-
-export default { 
-  SupabaseProvider: {
-    Component: SupabaseProvider,
-    Meta: SupabaseProviderMeta
-  }
-};
+export { SupabaseProvider } from "./components/SupabaseProvider";
+export { SupabaseProviderMeta } from "./components/SupabaseProvider/registerComponentMeta";
