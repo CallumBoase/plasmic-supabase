@@ -40,7 +40,13 @@ export const PLASMIC = initPlasmicLoader({
 import { initPlasmicLoader } from "@plasmicapp/loader-nextjs";
 import { 
   SupabaseProvider, 
-  SupabaseProviderMeta
+  SupabaseProviderMeta,
+  SupabaseUserGlobalContext,
+  SupabaseUserGlobalContextMeta,
+  SupabaseUppyUploader,
+  SupabaseUppyUploaderMeta,
+  SupabaseStorageGetSignedUrl,
+  SupabaseStorageGetSignedUrlMeta,
 } from "plasmic-supabase"
 
 export const PLASMIC = initPlasmicLoader({
@@ -54,7 +60,14 @@ export const PLASMIC = initPlasmicLoader({
   preview: false,
 });
 
-PLASMIC.registerComponent(SupabaseProvider, SupabaseProviderMeta)
+//Register global context
+PLASMIC.registerGlobalContext(SupabaseUserGlobalContext, SupabaseUserGlobalContextMeta)
+
+//Register components
+PLASMIC.registerComponent(SupabaseProvider, SupabaseProviderMeta);
+PLASMIC.registerComponent(SupabaseUppyUploader, SupabaseUppyUploaderMeta);
+PLASMIC.registerComponent(SupabaseStorageGetSignedUrl, SupabaseStorageGetSignedUrlMeta);
+
 
 ```
 6. In terminal: `npm run dev` to start your Dev server
@@ -63,3 +76,13 @@ PLASMIC.registerComponent(SupabaseProvider, SupabaseProviderMeta)
 ### 03 - in Plasmic web interface
 1. Configure you Custom App host to localhost:3000/plasmic-host
 2. When the page reloads, the registered components should be available in Add component -> Custom Components
+
+
+## Dev notes
+* To test locally:
+    1. run `npm run build`
+    2. run `npm pack` to create a tarball of the package (eg `plasmic-supabase-0.0.1.tgz`) (important: `npm link` does NOT work due to react conflicts)
+    3. In your local Plasmic project, run `npm install /path/to/plasmic-supabase-0.0.1.tgz` to install the package
+* To publish:
+    1. Update the version in `package.json`
+
