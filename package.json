@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Code components to use Supabase as a backend for a Plasmic app",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",	
+  "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@plasmicapp/data-sources": "^0.1.143",
-    "@plasmicapp/loader-nextjs": "^1.0.363",
     "@supabase/ssr": "^0.0.10",
     "@supabase/supabase-js": "^2.39.0",
     "@uppy/dashboard": "^3.7.5",
@@ -25,10 +24,13 @@
     "@uppy/react": "^3.2.2",
     "@uppy/tus": "^3.5.3",
     "cookie": "^0.6.0",
-    "react": "^18",
-    "react-dom": "^18",
     "use-deep-compare": "^1.2.1",
     "uuid": "^9.0.1"
+  },
+  "peerDependencies": {
+    "@plasmicapp/loader-nextjs": "^1.0.371",
+    "react": "^18",
+    "react-dom": "^18"
   },
   "repository": {
     "type": "git",
