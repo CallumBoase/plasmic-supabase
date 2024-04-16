@@ -104,10 +104,13 @@ export default MyApp;
     2. In your local plasmic nextjs project:
         1. Stop your dev server
         2. run `npm uninstall plasmic-supabase` 
-        3. May be needed: delete `.next` folder (nextjs cache) 
-        4. May be needed: clear node cache `npm cache clean --force`
+        3. Clear nextjs cache by deleting `.next` folder
+        4. (usually not needed): clear node cache `npm cache clean --force`
         5. run `npm install /path/to/plasmic-supabase-0.0.1.tgz`
         6. run `npm run dev` to start the dev server
 * To publish this package to npm:
     1. Update the version in `package.json`
+    2. Push all changes to github
+    3. Run npm publish
+    4. In github user interface: create a new release & tag with same version number
 
