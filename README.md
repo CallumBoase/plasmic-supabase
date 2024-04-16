@@ -52,12 +52,12 @@ import {
 export const PLASMIC = initPlasmicLoader({
   projects: [
     {
-      id: "your-plasmic-project-id",
-      token: "your-plasmic-project-token",
+      id: "jAZDtEEiZiwrV56Cjjs4JG",
+      token: "qzTUXXYNmrc8Mg4vh2cfHmFay0o8rgh1GJKZdXD6Cdm4eQUqa67iHY12pBwbFc4KpCldD2TDl1sc1Z0rk9FQ",
     },
   ],
 
-  preview: false,
+  preview: true,
 });
 
 //Register global context
@@ -68,21 +68,46 @@ PLASMIC.registerComponent(SupabaseProvider, SupabaseProviderMeta);
 PLASMIC.registerComponent(SupabaseUppyUploader, SupabaseUppyUploaderMeta);
 PLASMIC.registerComponent(SupabaseStorageGetSignedUrl, SupabaseStorageGetSignedUrlMeta);
 
-
 ```
-6. In terminal: `npm run dev` to start your Dev server
+7. In `./pages` directory add a new file called `_app.tsx` and add the following content. Save your file
+```js
+import type { AppProps } from 'next/app';
+
+//Import the CSS required for SupabaseUppyUploader globally
+import "@uppy/core/dist/style.min.css";
+import "@uppy/dashboard/dist/style.min.css";
+
+function MyApp({ Component, pageProps }: AppProps) {
+  return <Component {...pageProps} />;
+}
+
+export default MyApp;
+```
+8. In terminal: `npm run dev` to start your Dev server
 
 
 ### 03 - in Plasmic web interface
-1. Configure you Custom App host to localhost:3000/plasmic-host
+1. Configure you Custom App host to point to http://localhost:3000/plasmic-host
 2. When the page reloads, the registered components should be available in Add component -> Custom Components
 
 
 ## Dev notes
 * To test locally:
-    1. run `npm run build`
-    2. run `npm pack` to create a tarball of the package (eg `plasmic-supabase-0.0.1.tgz`) (important: `npm link` does NOT work due to react conflicts)
-    3. In your local Plasmic project, run `npm install /path/to/plasmic-supabase-0.0.1.tgz` to install the package
-* To publish:
+    1. In this plasmic-supabase repo:
+        1. run `npm run build`
+        2. run `npm pack` to create a tarball of the package (eg `plasmic-supabase-0.0.1.tgz`) (important: `npm link` does NOT work due to react conflicts)
+    2. In your local Plasmic nextjs project, 
+        1. run `npm install /path/to/plasmic-supabase-0.0.1.tgz` to install the package
+        2. run `npm run dev` to start the dev server
+* To retest a new version of local package locally
+    1. Follow step 1 above
+    2. In your local plasmic nextjs project:
+        1. Stop your dev server
+        2. run `npm uninstall plasmic-supabase` 
+        3. May be needed: delete `.next` folder (nextjs cache) 
+        4. May be needed: clear node cache `npm cache clean --force`
+        5. run `npm install /path/to/plasmic-supabase-0.0.1.tgz`
+        6. run `npm run dev` to start the dev server
+* To publish this package to npm:
     1. Update the version in `package.json`
 
