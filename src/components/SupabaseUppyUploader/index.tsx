@@ -5,15 +5,23 @@
 //Supabase Uppy Tus example this is based on https://github.com/supabase/supabase/blob/master/examples/storage/resumable-upload-uppy/README.md
 
 //React
-import React, { useEffect, useState, useCallback, forwardRef, useImperativeHandle } from "react";
+import React, { useEffect, useState, useCallback, forwardRef, useImperativeHandle, Suspense } from "react";
 
-//Uppy
-import Uppy from "@uppy/core";
-import type { UppyFile, UploadResult } from "@uppy/core";
-import { Dashboard } from "@uppy/react";
-import Tus from "@uppy/tus";
-import "@uppy/core/dist/style.min.css";
-import "@uppy/dashboard/dist/style.min.css";
+//Uppy - types
+//Other Uppy imports done using dynamic import in initUppy due to conflicts with ES modules and Commonjs when compiling this package into commonjs
+//Reason: Uppy is not available in commonjs, so we must import it dynamically instead
+import type { UppyFile, Uppy } from "@uppy/core";
+
+//Uppy - Dashboard component
+//We dynamically import it here because this package is compiled to commonjs so it can be loaded into a nextjs project
+//But Uppy does not support import via commonjs require(), so we must instead import it dynamically
+//The correct way to dynamically import a React component (with named rather than dynamic export) is this way, combined with
+//suspense boundary where the component is used (see bottom)
+//The correct way to import non-react components using dynamic imports is to use the await import() method, 
+//Which we do for importing non-react-component Uppy dependencies in the initUppy function
+//When importing 
+const Dashboard = React.lazy(() => import("@uppy/react").then((module) => ({ default: module.Dashboard })));
+//https://stackoverflow.com/questions/58791636/can-you-deconstruct-lazily-loaded-react-components
 
 //General utils
 import getSupabaseProjectIdFromUrl from "../../utils/getSupabaseProjectIdFromUrl";
@@ -64,11 +72,16 @@ export type SupabaseUppyUploaderProps = {
 };
 
 //Helper function to init uppy
-export function initUppy(
+export async function initUppy(
   supabaseProjectId: string,
   bearerToken: string,
   supabaseAnonKey: string
 ) {
+
+  //Dyanmic import statements for Uppy since it does not support commonjs require() and we are compiling this package to commonjs
+  //Importing this way avoids errors when using the package in a nextjs app
+  const { default: Uppy } = await import("@uppy/core");
+  const { default: Tus } = await import("@uppy/tus");
 
   const supabaseStorageURL = `https://${supabaseProjectId}.supabase.co/storage/v1/upload/resumable`;
 
@@ -232,7 +245,7 @@ export const SupabaseUppyUploader = forwardRef<SupabaseUppyUploaderActions, Supa
       //Reason: we're using raw http requests for the api calls not supabaseJS, hence we need to manually get the token
       getBearerTokenForSupabase().then(async (token) => {
         //Initialize Uppy
-        const uppy = initUppy(
+        const uppy = await initUppy(
           supabaseProjectId,
           token,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -521,23 +534,25 @@ export const SupabaseUppyUploader = forwardRef<SupabaseUppyUploaderActions, Supa
 
     //Render the uploader
     return (
-      <div className={className}>
-        <Dashboard
-          uppy={uppy as Uppy}
-          proudlyDisplayPoweredByUppy={false}
-          width={width}
-          height={height}
-          showProgressDetails={showProgressDetails}
-          showRemoveButtonAfterComplete={showRemoveButtonAfterComplete}
-          //If showDoneButton is false, pass in undefined as the doneButtonHandler (which hides the Done button as per Uppy docs)
-          //Otherwise show the done button and run a custom handler if the user has defined one
-          doneButtonHandler={!showDoneButton ? undefined : () => {
-            //Run whatever custom handler the user has defined
-            onDoneButtonClick();
-          }}
-          theme={theme}
-        />
-      </div>
+      <Suspense fallback={loading}>
+        <div className={className}>
+          <Dashboard
+            uppy={uppy as Uppy}
+            proudlyDisplayPoweredByUppy={false}
+            width={width}
+            height={height}
+            showProgressDetails={showProgressDetails}
+            showRemoveButtonAfterComplete={showRemoveButtonAfterComplete}
+            //If showDoneButton is false, pass in undefined as the doneButtonHandler (which hides the Done button as per Uppy docs)
+            //Otherwise show the done button and run a custom handler if the user has defined one
+            doneButtonHandler={!showDoneButton ? undefined : () => {
+              //Run whatever custom handler the user has defined
+              onDoneButtonClick();
+            }}
+            theme={theme}
+          />
+        </div>
+      </Suspense>
     );
   }
 );
