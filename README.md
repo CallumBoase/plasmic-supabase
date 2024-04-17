@@ -52,8 +52,8 @@ import {
 export const PLASMIC = initPlasmicLoader({
   projects: [
     {
-      id: "jAZDtEEiZiwrV56Cjjs4JG",
-      token: "qzTUXXYNmrc8Mg4vh2cfHmFay0o8rgh1GJKZdXD6Cdm4eQUqa67iHY12pBwbFc4KpCldD2TDl1sc1Z0rk9FQ",
+      id: "your-plasmic-project-id",
+      token: "your-plasmic-project-token",
     },
   ],
 
