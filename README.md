@@ -1,5 +1,26 @@
 # plasmic-supabase
 
+*Components that make it easy to use Supabase as a backend for your Plasmic app.*
+
+These components allow you to use the auto-generated Supabase API for database, storage & auth, so you can leverage all of Supabase's powerful features in your Plasmic app. Note that this is DIFFERENT from the built-in Plasmic supabase integration which uses direct database connection.
+
+These components support use of Supabase auth without Plasmic auth.
+
+## Contributors
+- Callum Boase
+   * Github: [CallumBoase](https://github.com/CallumBoase)
+   * Website: [Enliven IT](https://enliven-it.com.au/contact)
+   * Email: callum.boase@gmail.com
+   * Mobile (Australia): +61409 378 253
+- Ryan Mouritz
+    * Github: [ryanmouritz](https://github.com/ryanmouritz)
+
+## Getting help
+**Need help with your project?**
+Contact one of the contributors using their contact details above.
+
+We provide general support for this package, as well as paid coaching & development in Plasmic & Supabase.
+
 ## Installation
 
 ### 01 - in Plasmic web interface
