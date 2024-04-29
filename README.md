@@ -131,7 +131,8 @@ export default MyApp;
         6. run `npm run dev` to start the dev server
 * To publish this package to npm:
     1. Update the version in `package.json`
-    2. Push all changes to github
-    3. Run npm publish
-    4. In github user interface: create a new release & tag with same version number
+    2. Update changelog
+    3. Push all changes to github
+    4. Run npm publish
+    5. In github user interface: create a new release & tag with same version number
 
