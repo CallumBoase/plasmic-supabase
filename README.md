@@ -130,32 +130,30 @@ In Plasmic studio:
 In Plasmic studio:
 1. Create a login page
     * Create page at path `/login`. 
-    * Add a form that collects email & password. 
-    * Attach an interaction to the form for `onSubmit`: 
-        * Action 1: `SupabaseUserGlobalContext -> login`. Fill in the email & password values from your form & specify a redirect to `/` on success.
-2. Add a logout button
-    * Add a button somewhere in your app (eg the header of your app)
-    * Attach an interaction to the button: `onClick`: 
-        * Action 1: `SupabaseUserGlobalContext -> logout`. 
-        * Action 2: go to page `/login`.
-3. Log in as a Supabase user
-    * Go to the Login page while viewing your app in Plasmic studio
+    * Add a form component to the page
+    * Configure the form fields so it contains an email and password input
+    * In Plasmic studio, top right next to the triangle button, click "view" and select "Turn off design mode"
     * Turn on `Interactive` mode in the studio
-    * Fill in the login form with a valid username and password, then click "Submit"
-    * You should now have logged in but it's hard to tell for sure
-4. Check that login worked by showing logged in user email on the home page
-    * Ensure you've already logged in while viewing your app in Plasmic studio (see previous step 3) 
-    * Go to your project's home `/` page
+    * Fill in the form with a valid email & password of a Supabase user in your Supabase project
+    * Attach an interaction to the form for `onSubmit`: 
+        * Action 1: `SupabaseUserGlobalContext -> login`. Fill in the fields that appear (`Email` and `Password`) with the dynamic values from the form: `form.value.email` & `form.value.password`. Also fill in the `Success redirect` field with the home page `/`
+    * Close the form configuration popups and submit the login form with a valid email & password. You should have logged in but won't yet be able to tell.
+2. Check that login worked by showing logged in user email on the home page
+    * Ensure you've already logged in while viewing your app in Plasmic studio (see previous step 2) 
+    * Go to your project's home `/` page using the page dropdown in Plasmic studio.
     * Click the "refresh arena" button (because Plasmic studio caches page context between visits so login status sometimes will not be available until you refresh the arena)
     * Add a text element to the page
     * Assign dynamic content to the text element and pick `SupabaseUser.user.email` with fallback "You are not logged in"
-    * If login succeeded in step 3, you should see the logged in user's email address on the page
-5. Check that you can log out
-    * Navigate to the logout button while viewing your app in Plasmic studio
+    * If login succeeded in step 2, you should see the logged in user's email address on the page
+3. Add a logout button to the home page
+    * Add a button to the homepage of your app
+    * Assign the content of "Logout" to the button
+    * Attach an interaction to the button: `onClick`: 
+        * Action 1: `SupabaseUserGlobalContext -> logout`. Leave the `Success redirect` field blank
+4. Check that you can log out
+    * Make sure you are currently logged in (see step 1 & 2) and have added a logout button to the homepage (see step 3)
     * Turn on `Interactive` mode in the studio
     * Click the logout button
-    * Go back to the home page in Plasmic studio
-    * Click the `refresh arena` button
     * If logout succeeded, you should no longer see the logged in user's email address on the page. Instead you should see the fallback content from your text block "You are not logged in"
 
 ### 05 - Test that you can access your Supabase database
@@ -607,16 +605,16 @@ In this section, we'll fix this issue so that we can define both public and logi
     5. Add a public page to your app in Plasmic studio
         * Create a new page in Plasmic studio
         * Set it's URL anything that starts with `/public/`. This will automatically make it a publicly accessible page.
-3. On your local machine, open terminal and start your local dev server by running
+3. Click "Publish" in Plasmic studio so all the changes made in Plasmic studio are available to the locally running version of your app. Use the settings configured in the basic installation section. Wait for it to build.
+4. On your local machine, open terminal and start your local dev server by running
     ```bash
       npm run dev
     ```
-4. In a web browser, open your locally running app by going to `localhost:3000`. Check that Authorization and Authentication logic is working as expected:
+5. In a web browser, open your locally running app by going to `localhost:3000`. Check that Authorization and Authentication logic is working as expected:
     * The home page `/` should load without any login required
     * The login page should load without any login required
-    * The login page should allow you to login with email & password
-    * The logout button should log you out and redirect you to the login page
     * The login protected page should redirect you to the login page if you are not logged in
+    * The login protected page should load if you are logged in
     * The public page should load without any login required
 
 ## Dev notes
