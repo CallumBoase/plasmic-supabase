@@ -26,16 +26,25 @@ Important note: this repo currently only works with a Plasmic project that uses 
 
 Support for NextJS pages router with codegen will be added later.
 
-## Installation
+## Basic Installation
+This sections covers how to create a new Plasmic project and make the `plasmic-supabase` component available in the project.
 
-### 01 - in Plasmic web interface
+After completing this section, you will be able to use the `plasmic-supabase` components in your Plasmic project to:
+  * Log a user in & out via Supabase auth
+  * CRUD data from your supabase database & supabase storage (including tables/buckets that have RLS policies enabled that limit actions based on logged in user)
+
+However, you will **NOT** yet be able to limit access to pages based on user authentication status. This is covered in the next section.
+
+### 01 - Create new Plasmic Project 
+In the Plasmic web interface:
 1. Create a new Plasmic app
 2. Rename your app
 3. Click the "Publish" button at top-right
 4. Add a "Push to Github" step, publishing to a new repo, nextjs, loader (recommended) method, typescript
 5. Click "publish" and wait for the build to complete
 
-### 02 - On your machine
+### 02 - Download & modify your project code:
+On your local machine:
 1. Clone the repo you just created to your local machine
 2. In terminal, run `npm install` to install plasmic & it's dependencies
 3. Add a .env.local file with your supabase credentials (from Supabase dashboard)
@@ -112,97 +121,181 @@ export default MyApp;
 8. In terminal: `npm run dev` to start your Dev server
 
 
-### 03 - in Plasmic web interface
+### 03 - Configure custom app host 
+In Plasmic studio:
 1. Configure you Custom App host to point to http://localhost:3000/plasmic-host
 2. When the page reloads, the registered components should be available in Add component -> Custom Components
 
-### 04 - Adding user logins
-This section outlines how to add authentication to your app using Supabase auth. Note, that we do NOT use Plasmic auth at all in this setup.
 
-#### Change catchall page setup in your Nextjs project
-On your local machine, the plasmic-generated nextjs project contains a `[[...catchall]].tsx` page in the `pages` directory.
-This catchall page dynamically loads & renders pages you define in Plasmic studio.
+You're done with basic setup! Try adding `plasmic-supabase` components to pages in Plasmic to CRUD from your Supabase database tables and Supabase Storage.
 
-We will be modifying this default setup to add authorization logic to protect pages from unauthenticated users.
+## Setting up Authentication & Authorization in your app
+This section outlines how to add authentication & authorization to your app using Supabase auth, including limiting access to certain pages if users are not logged in.
 
-1. In your local project, delete `pages/[[...catchall]].tsx`
-2. Create a new file `pages/index.tsx` with this content
-```tsx
-// Load & render the '/' (home) page from Plasmic studio
-// we do this outside of normal catchall routes so it can be publicly accessible without having '/public/' at front of route path
-
-const pageToLoad = '/';
-
-import * as React from "react";
-import {
-  PlasmicComponent,
-  extractPlasmicQueryData,
-  ComponentRenderData,
-  PlasmicRootProvider,
-} from "@plasmicapp/loader-nextjs";
-import type { GetStaticProps } from "next";
-
-import Error from "next/error";
-import { useRouter } from "next/router";
-import { PLASMIC } from "@/plasmic-init";
-
-export default function PlasmicLoaderPage(props: {
-  plasmicData?: ComponentRenderData;
-  queryCache?: Record<string, any>;
-}) {
-  const { plasmicData, queryCache } = props;
-  const router = useRouter();
-  if (!plasmicData || plasmicData.entryCompMetas.length === 0) {
-    return <Error statusCode={404} />;
-  }
-  const pageMeta = plasmicData.entryCompMetas[0];
-  return (
-    <PlasmicRootProvider
-      loader={PLASMIC}
-      prefetchedData={plasmicData}
-      prefetchedQueryData={queryCache}
-      pageParams={pageMeta.params}
-      pageQuery={router.query}
-    >
-      <PlasmicComponent component={pageMeta.displayName} />
-    </PlasmicRootProvider>
-  );
-}
-
-export const getStaticProps: GetStaticProps = async () => {
-  const plasmicPath = pageToLoad;
-  const plasmicData = await PLASMIC.maybeFetchComponentData(plasmicPath);
-  if (!plasmicData) {
-    // non-Plasmic catch-all
-    return { props: {} };
-  }
-  const pageMeta = plasmicData.entryCompMetas[0];
-  // Cache the necessary data fetched for the page
-  const queryCache = await extractPlasmicQueryData(
-    <PlasmicRootProvider
-      loader={PLASMIC}
-      prefetchedData={plasmicData}
-      pageParams={pageMeta.params}
-    >
-      <PlasmicComponent component={pageMeta.displayName} />
-    </PlasmicRootProvider>
-  );
-  // Use revalidate if you want incremental static regeneration
-  return { props: { plasmicData, queryCache }, revalidate: 60 };
-}
-```
-3. Create a new file `pages/login.tsx` with the same content as `index.tsx` but with `pageToLoad = '/login'` on line 1 instead
-```tsx
-const pageToLoad = '/login';
-
-//Rest of the code from index.tsx continues here
-```
-4. Create a new file called `pages/[...catchall].tsx` with this content. (note that single square brackets instead of double square brackets)
-    <details>
-      <summary>
-        <strong>pages/[...catchall].tsx content</strong>
-      </summary>
+1. On your local machine (cloned repo from github, see previous):
+    1.  delete `pages/[[...catchall]].tsx`
+    2. Create a new file `pages/index.tsx` with this content
+        <details>
+          <summary>
+            <strong>
+              Content of pages/index.tsx
+            </strong>
+          </summary>
+        
           ```tsx
+          // ./pages/index.tsx
+
+          // Load & render the '/' (home) page from Plasmic studio
+          // we do this outside of normal catchall routes so it can be publicly accessible without having '/public/' at front of route path
+
+          const pageToLoad = '/';
+
+          import * as React from "react";
+          import {
+            PlasmicComponent,
+            extractPlasmicQueryData,
+            ComponentRenderData,
+            PlasmicRootProvider,
+          } from "@plasmicapp/loader-nextjs";
+          import type { GetStaticProps } from "next";
+
+          import Error from "next/error";
+          import { useRouter } from "next/router";
+          import { PLASMIC } from "@/plasmic-init";
+
+          export default function PlasmicLoaderPage(props: {
+            plasmicData?: ComponentRenderData;
+            queryCache?: Record<string, any>;
+          }) {
+            const { plasmicData, queryCache } = props;
+            const router = useRouter();
+            if (!plasmicData || plasmicData.entryCompMetas.length === 0) {
+              return <Error statusCode={404} />;
+            }
+            const pageMeta = plasmicData.entryCompMetas[0];
+            return (
+              <PlasmicRootProvider
+                loader={PLASMIC}
+                prefetchedData={plasmicData}
+                prefetchedQueryData={queryCache}
+                pageParams={pageMeta.params}
+                pageQuery={router.query}
+              >
+                <PlasmicComponent component={pageMeta.displayName} />
+              </PlasmicRootProvider>
+            );
+          }
+
+          export const getStaticProps: GetStaticProps = async () => {
+            const plasmicPath = pageToLoad;
+            const plasmicData = await PLASMIC.maybeFetchComponentData(plasmicPath);
+            if (!plasmicData) {
+              // non-Plasmic catch-all
+              return { props: {} };
+            }
+            const pageMeta = plasmicData.entryCompMetas[0];
+            // Cache the necessary data fetched for the page
+            const queryCache = await extractPlasmicQueryData(
+              <PlasmicRootProvider
+                loader={PLASMIC}
+                prefetchedData={plasmicData}
+                pageParams={pageMeta.params}
+              >
+                <PlasmicComponent component={pageMeta.displayName} />
+              </PlasmicRootProvider>
+            );
+            // Use revalidate if you want incremental static regeneration
+            return { props: { plasmicData, queryCache }, revalidate: 60 };
+          }
+          ```
+        </details>
+    3. Create a new file `pages/login.tsx` with this content
+        <details>
+          <summary>
+            <strong>
+              Content of pages/login.tsx
+            </strong>
+          </summary>
+        
+          ```tsx
+          // ./pages/login.tsx
+
+          // Load & render the '/login' page from Plasmic studio
+          // we do this outside of normal catchall routes so it can be publicly accessible without having '/public/' at front of route path
+
+          const pageToLoad = '/login';
+
+          import * as React from "react";
+          import {
+            PlasmicComponent,
+            extractPlasmicQueryData,
+            ComponentRenderData,
+            PlasmicRootProvider,
+          } from "@plasmicapp/loader-nextjs";
+          import type { GetStaticProps } from "next";
+
+          import Error from "next/error";
+          import { useRouter } from "next/router";
+          import { PLASMIC } from "@/plasmic-init";
+
+          export default function PlasmicLoaderPage(props: {
+            plasmicData?: ComponentRenderData;
+            queryCache?: Record<string, any>;
+          }) {
+            const { plasmicData, queryCache } = props;
+            const router = useRouter();
+            if (!plasmicData || plasmicData.entryCompMetas.length === 0) {
+              return <Error statusCode={404} />;
+            }
+            const pageMeta = plasmicData.entryCompMetas[0];
+            return (
+              <PlasmicRootProvider
+                loader={PLASMIC}
+                prefetchedData={plasmicData}
+                prefetchedQueryData={queryCache}
+                pageParams={pageMeta.params}
+                pageQuery={router.query}
+              >
+                <PlasmicComponent component={pageMeta.displayName} />
+              </PlasmicRootProvider>
+            );
+          }
+
+          export const getStaticProps: GetStaticProps = async () => {
+            const plasmicPath = pageToLoad;
+            const plasmicData = await PLASMIC.maybeFetchComponentData(plasmicPath);
+            if (!plasmicData) {
+              // non-Plasmic catch-all
+              return { props: {} };
+            }
+            const pageMeta = plasmicData.entryCompMetas[0];
+            // Cache the necessary data fetched for the page
+            const queryCache = await extractPlasmicQueryData(
+              <PlasmicRootProvider
+                loader={PLASMIC}
+                prefetchedData={plasmicData}
+                pageParams={pageMeta.params}
+              >
+                <PlasmicComponent component={pageMeta.displayName} />
+              </PlasmicRootProvider>
+            );
+            // Use revalidate if you want incremental static regeneration
+            return { props: { plasmicData, queryCache }, revalidate: 60 };
+          }
+          ```
+        </details>
+    4. Create a new file `pages/[...catchall].tsx` with this content. (note: single square brackets as opposed to double)
+        <details>
+
+          <summary>
+            <strong>
+              Content of pages/[...catchall].tsx
+            </strong>
+          </summary>
+
+          ```tsx
+          // ./pages/[...catchall].tsx
+
           /* 
             Catchall page that runs for every page EXCEPT /, /login, and /public/*
             These pages are login protected by default
@@ -314,7 +407,182 @@ const pageToLoad = '/login';
           }
 
           ```
-    </details>
+        </details>
+    5. Create a new directory `pages/public`
+    6. Create a new file `pages/public/[[...catchall]].tsx` with this content. (note: double square brackets as opposed to single)
+        <details>
+
+          <summary>
+            <strong>
+              Content of pages/public/[[...catchall]].tsx
+            </strong>
+          </summary>
+
+          ```tsx
+          // ./pages/public/[[...catchall]].tsx
+
+          /* 
+            Catchall page that runs for all routes that start with /public (ie /public/*)
+            These pages are publicly accessible (no logged in user required)
+            
+            The routes that render through this page are rendered with Incremental Static Regeneration (ISR) 
+            using getStaticProps.
+            
+            This pages is a modified various of the standard Plasmic NextJS loader API catchall page.
+
+            Pages created in Plasmic studio will render using this catchall if it's:
+              Page Settings -> URL path starts with "/public/"
+          */
+          import * as React from "react";
+          import {
+            PlasmicComponent,
+            extractPlasmicQueryData,
+            ComponentRenderData,
+            PlasmicRootProvider,
+          } from "@plasmicapp/loader-nextjs";
+          import type { GetStaticPaths, GetStaticProps } from "next";
+
+          import Error from "next/error";
+          import { useRouter } from "next/router";
+          import { PLASMIC } from "@/plasmic-init";
+
+          export default function PlasmicLoaderPage(props: {
+            plasmicData?: ComponentRenderData;
+            queryCache?: Record<string, any>;
+          }) {
+            const { plasmicData, queryCache } = props;
+            const router = useRouter();
+            if (!plasmicData || plasmicData.entryCompMetas.length === 0) {
+              return <Error statusCode={404} />;
+            }
+            const pageMeta = plasmicData.entryCompMetas[0];
+            return (
+              <PlasmicRootProvider
+                loader={PLASMIC}
+                prefetchedData={plasmicData}
+                prefetchedQueryData={queryCache}
+                pageParams={pageMeta.params}
+                pageQuery={router.query}
+              >
+                <PlasmicComponent component={pageMeta.displayName} />
+              </PlasmicRootProvider>
+            );
+          }
+
+          export const getStaticProps: GetStaticProps = async (context) => {
+            
+            const { catchall } = context.params ?? {};
+            
+            //Add "/public" at the start of the catchall parameter
+            //Since we're in the public folder
+            //This ensures the page is available at the same path as configured in Plasmic studio
+            let plasmicPath = typeof catchall === 'string' ? catchall : Array.isArray(catchall) ? `/${catchall.join('/')}` : '/';
+            plasmicPath = `/public${plasmicPath}`
+
+            //Continue with normal Plasmic loading logic
+            const plasmicData = await PLASMIC.maybeFetchComponentData(plasmicPath);
+            if (!plasmicData) {
+              // non-Plasmic catch-all
+              return { props: {} };
+            }
+            const pageMeta = plasmicData.entryCompMetas[0];
+            // Cache the necessary data fetched for the page
+            const queryCache = await extractPlasmicQueryData(
+              <PlasmicRootProvider
+                loader={PLASMIC}
+                prefetchedData={plasmicData}
+                pageParams={pageMeta.params}
+              >
+                <PlasmicComponent component={pageMeta.displayName} />
+              </PlasmicRootProvider>
+            );
+            // Use revalidate if you want incremental static regeneration
+            return { props: { plasmicData, queryCache }, revalidate: 60 };
+          }
+
+          export const getStaticPaths: GetStaticPaths = async () => {
+            
+            //Get all pages from plasmic
+            const pageModules = await PLASMIC.fetchPages();
+
+            //Filter out only the pages who's url starts with "/public"
+            const pageModulesWithPublicPath = pageModules.filter(mod => mod.path.startsWith("/public"));
+
+            return {
+              paths: pageModulesWithPublicPath.map((mod) => ({
+                params: {
+                  //Remove "/public/" from the path to get the catchall parameter
+                  //Would usually be just removing "/" here but since we are in a folder called "public" we need to remove "/public/"
+                  catchall: mod.path.split("/public/")[1].split("/"),
+                },
+              })),
+              fallback: "blocking",
+            };
+          }
+
+
+          ```
+        </details>
+    7. Create a new file in the root of your project called `authorization-settings.ts` with the content below. The `authorizationCheck` function is imported by the `./pages/[...catchall].tsx` file to determine if a user is authorized to view a page. The `loginPagePath` is the path to redirect to if a user is not authorized to view a page. Modify this file to suit your needs.
+        <details>
+
+          <summary>
+            <strong>
+              Content of authorization-settings.ts
+            </strong>
+          </summary>
+
+          ```ts
+          // ./authorization-settings.ts
+
+          import type { AuthorizationCheckFunction, RoutePath } from "plasmic-supabase";
+
+          //Run this function to check if the user is authorized to view any page
+          //This will run server-side before render of all pages EXCEPT /, /login and /public/*
+          //due to the setup of catchall pages in the pages directory
+
+          export const authorizationCheckFunction : AuthorizationCheckFunction= (pagePath, user) => {
+            if(!user || user.role !== 'authenticated') {
+              return false;
+            } else {
+              return true;
+            }
+          }
+
+          export const loginPagePath : RoutePath = '/login';
+          ```
+        </details>
+2. In Plasmic studio:
+    1. Create a login page
+        * Create page at path `/login`. 
+        * Add a form that collects email & password. 
+        * Attach an interaction to the form for `onSubmit`: 
+            * Action 1: `SupabaseUserGlobalContext -> login`. Fill in the email & password values from your form & specify a redirect to `/` on success.
+    2. Add a logout button
+        * Add a button somewhere in your app (eg the header of your app)
+        * Attach an interaction to the button: `onClick`: 
+            * Action 1: `SupabaseUserGlobalContext -> logout`. 
+            * Action 2: go to page `/login`.
+    3. Make sure you have a home page
+        * Look at your page list in Plasmic studio and make sure there's a page with URL `/`. This is your homepage and is automatically made publicly accesible
+        * If you do not have a home page, create one now
+    4. Add a login protected page to your app:
+        * Create a new page in Plasmic studio
+        * Set it's URL to anything except `/` or `/login` and not starting with `/public/`. This will automatically make it a login protected page.
+    5. Add a public page to your app in Plasmic studio
+        * Create a new page in Plasmic studio
+        * Set it's URL anything that starts with `/public/`. This will automatically make it a publicly accessible page.
+3. On your local machine, open terminal and start your local dev server by running
+    ```bash
+      npm run dev
+    ```
+4. In a web browser, open your locally running app by going to `localhost:3000`. Check that Authorization and Authentication logic is working as expected:
+    * The home page `/` should load without any login required
+    * The login page should load without any login required
+    * The login page should allow you to login with email & password
+    * The logout button should log you out and redirect you to the login page
+    * The login protected page should redirect you to the login page if you are not logged in
+    * The public page should load without any login required
 
 ## Dev notes
 * To test locally:
