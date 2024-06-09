@@ -124,16 +124,59 @@ export default MyApp;
 ### 03 - Configure custom app host 
 In Plasmic studio:
 1. Configure you Custom App host to point to http://localhost:3000/plasmic-host
-2. When the page reloads, the registered components should be available in Add component -> Custom Components
+2. When the page reloads, the registered components should be available in Add component -> Custom Components. You'll also see global actions available for login/logout etc & a global context value of logged in SupabaseUser.
+
+### 04 - Add login and logout functionality
+In Plasmic studio:
+1. Create a login page
+    * Create page at path `/login`. 
+    * Add a form that collects email & password. 
+    * Attach an interaction to the form for `onSubmit`: 
+        * Action 1: `SupabaseUserGlobalContext -> login`. Fill in the email & password values from your form & specify a redirect to `/` on success.
+2. Add a logout button
+    * Add a button somewhere in your app (eg the header of your app)
+    * Attach an interaction to the button: `onClick`: 
+        * Action 1: `SupabaseUserGlobalContext -> logout`. 
+        * Action 2: go to page `/login`.
+3. Log in as a Supabase user
+    * Go to the Login page while viewing your app in Plasmic studio
+    * Turn on `Interactive` mode in the studio
+    * Fill in the login form with a valid username and password, then click "Submit"
+    * You should now have logged in but it's hard to tell for sure
+4. Check that login worked by showing logged in user email on the home page
+    * Ensure you've already logged in while viewing your app in Plasmic studio (see previous step 3) 
+    * Go to your project's home `/` page
+    * Click the "refresh arena" button (because Plasmic studio caches page context between visits so login status sometimes will not be available until you refresh the arena)
+    * Add a text element to the page
+    * Assign dynamic content to the text element and pick `SupabaseUser.user.email` with fallback "You are not logged in"
+    * If login succeeded in step 3, you should see the logged in user's email address on the page
+5. Check that you can log out
+    * Navigate to the logout button while viewing your app in Plasmic studio
+    * Turn on `Interactive` mode in the studio
+    * Click the logout button
+    * Go back to the home page in Plasmic studio
+    * Click the `refresh arena` button
+    * If logout succeeded, you should no longer see the logged in user's email address on the page. Instead you should see the fallback content from your text block "You are not logged in"
+
+### 05 - Test that you can access your Supabase database
+In Plasmic studio:
+1. Create a new page
+2. Add a `SupabaseProvider` component to the page
+3. Configure the `SupabaseProvider` component as per the on-screen instructions
+4. Add a text element inside the `SupabaseProvider` component
+5. Assign a dynamic value provided by the `SupabaseProvider` to this text element.
+6. If everything worked, you'll see a real value from your database on the page!
 
 
-You're done with basic setup! Try adding `plasmic-supabase` components to pages in Plasmic to CRUD from your Supabase database tables and Supabase Storage.
+You're now done with basic setup!
 
-## Setting up Authentication & Authorization in your app
-This section outlines how to add authentication & authorization to your app using Supabase auth, including limiting access to certain pages if users are not logged in.
+## Login-protecting pages in your app
+The previous section allowed you to login and logout, however we don't yet have a way to prevent non-logged-in users from accessing certain pages of our app.
 
-1. On your local machine (cloned repo from github, see previous):
-    1.  delete `pages/[[...catchall]].tsx`
+In this section, we'll fix this issue so that we can define both public and login-protected pages in our app.
+
+1. On your local machine (cloned repo from github, see previous section `02 - Download & modify your project code`):
+    1. delete the file `pages/[[...catchall]].tsx`
     2. Create a new file `pages/index.tsx` with this content
         <details>
           <summary>
@@ -553,16 +596,8 @@ This section outlines how to add authentication & authorization to your app usin
           ```
         </details>
 2. In Plasmic studio:
-    1. Create a login page
-        * Create page at path `/login`. 
-        * Add a form that collects email & password. 
-        * Attach an interaction to the form for `onSubmit`: 
-            * Action 1: `SupabaseUserGlobalContext -> login`. Fill in the email & password values from your form & specify a redirect to `/` on success.
-    2. Add a logout button
-        * Add a button somewhere in your app (eg the header of your app)
-        * Attach an interaction to the button: `onClick`: 
-            * Action 1: `SupabaseUserGlobalContext -> logout`. 
-            * Action 2: go to page `/login`.
+    1. Make sure you have a login page (see previous)
+    2. Make sure you have a logout button (see previous)
     3. Make sure you have a home page
         * Look at your page list in Plasmic studio and make sure there's a page with URL `/`. This is your homepage and is automatically made publicly accesible
         * If you do not have a home page, create one now
