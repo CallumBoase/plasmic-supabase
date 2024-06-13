@@ -21,6 +21,9 @@ Contact one of the contributors using their contact details above.
 
 We provide general support for this package, as well as paid coaching & development in Plasmic & Supabase.
 
+## Changelog
+You can find the changelog for this project [here](CHANGELOG.md)
+
 ## Only works with NextJS pages router - Loader API
 Important note: this repo currently only works with a Plasmic project that uses the NextJS pages router with the Loader API. 
 
@@ -617,27 +620,8 @@ In this section, we'll fix this issue so that we can define both public and logi
     * The login protected page should load if you are logged in
     * The public page should load without any login required
 
-## Dev notes
-* To test locally:
-    1. In this plasmic-supabase repo:
-        1. run `npm run build`
-        2. run `npm pack` to create a tarball of the package (eg `plasmic-supabase-0.0.1.tgz`) (important: `npm link` does NOT work due to react conflicts)
-    2. In your local Plasmic nextjs project, 
-        1. run `npm install /path/to/plasmic-supabase-0.0.1.tgz` to install the package
-        2. run `npm run dev` to start the dev server
-* To retest a new version of local package locally
-    1. Follow step 1 above
-    2. In your local plasmic nextjs project:
-        1. Stop your dev server
-        2. run `npm uninstall plasmic-supabase` 
-        3. Clear nextjs cache by deleting `.next` folder
-        4. (usually not needed): clear node cache `npm cache clean --force`
-        5. run `npm install /path/to/plasmic-supabase-0.0.1.tgz`
-        6. run `npm run dev` to start the dev server
-* To publish this package to npm:
-    1. Update the version in `package.json`
-    2. Update changelog
-    3. Push all changes to github
-    4. Run npm publish
-    5. In github user interface: create a new release & tag with same version number
+### Why login protect pages using getServerSideProps?
+There are various techniques for login protecting pages in a NextJS app. This method was chosen because it was most reliable.
+
+The other main method, using middleware, was not chosen because it was not reliable when navigating between pages using `<Link>` components and similar. The author's understanding from much experimentation is that use of middleware to login-protect pages is more suited to the NextJS App Router, rather than the Pages router which Plasmic projects use.
 
