@@ -134,7 +134,7 @@ In Plasmic studio:
     * Configure the form fields so it contains an email and password input
     * In Plasmic studio, top right next to the triangle button, click "view" and select "Turn off design mode"
     * Turn on `Interactive` mode in the studio
-    * Fill in the form with a valid email & password of a Supabase user in your Supabase project
+    * Fill in the form with a valid email & password of a Supabase user in your Supabase project but **don't submit it yet**
     * Attach an interaction to the form for `onSubmit`: 
         * Action 1: `SupabaseUserGlobalContext -> login`. Fill in the fields that appear (`Email` and `Password`) with the dynamic values from the form: `form.value.email` & `form.value.password`. Also fill in the `Success redirect` field with the home page `/`
     * Close the form configuration popups and submit the login form with a valid email & password. You should have logged in but won't yet be able to tell.
@@ -147,7 +147,7 @@ In Plasmic studio:
     * If login succeeded in step 2, you should see the logged in user's email address on the page
 3. Add a logout button to the home page
     * Add a button to the homepage of your app
-    * Assign the content of "Logout" to the button
+    * Change the button text to "Logout"
     * Attach an interaction to the button: `onClick`: 
         * Action 1: `SupabaseUserGlobalContext -> logout`. Leave the `Success redirect` field blank
 4. Check that you can log out
@@ -605,8 +605,8 @@ In this section, we'll fix this issue so that we can define both public and logi
     5. Add a public page to your app in Plasmic studio
         * Create a new page in Plasmic studio
         * Set it's URL anything that starts with `/public/`. This will automatically make it a publicly accessible page.
-3. Click "Publish" in Plasmic studio so all the changes made in Plasmic studio are available to the locally running version of your app. Use the settings configured in the basic installation section. Wait for it to build.
-4. On your local machine, open terminal and start your local dev server by running
+3. Make sure your `plasmic-init.ts` file has `preview: true` enabled (as shown in the basic setup instructions above) 
+4. On your local machine, open terminal and restart your local dev server by hitting `cntrl + c` or `cmd + c` and then
     ```bash
       npm run dev
     ```
