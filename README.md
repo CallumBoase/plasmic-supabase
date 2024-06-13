@@ -22,7 +22,7 @@ Contact one of the contributors using their contact details above.
 We provide general support for this package, as well as paid coaching & development in Plasmic & Supabase.
 
 ## Changelog
-You can find the changelog for this project [here](CHANGELOG.md)
+You can find the changelog for this project [here](https://github.com/CallumBoase/plasmic-supabase/blob/main/CHANGELOG.md)
 
 ## Only works with NextJS pages router - Loader API
 Important note: this repo currently only works with a Plasmic project that uses the NextJS pages router with the Loader API. 
