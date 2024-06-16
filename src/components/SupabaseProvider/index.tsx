@@ -8,20 +8,27 @@ import React, {
 import { useDeepCompareMemo } from "use-deep-compare";
 
 import { DataProvider } from "@plasmicapp/loader-nextjs";
-import useSWR from "swr";
-import createClient from "../../utils/supabase/component";
+import { useMutablePlasmicQueryData } from "@plasmicapp/query";
+// import createClient from "../../utils/supabase/component";
+import { createBrowserClient } from "@supabase/ssr";
 import getSortFunc, { type SortDirection } from "../../utils/getSortFunc";
 import buildSupabaseQueryWithDynamicFilters, {
   type Filter,
 } from "../../utils/buildSupabaseQueryWithDynamicFilters";
 import getErrMsg from "../../utils/getErrMsg";
 
+//An unrealistically simplified createClient without ref to cookies or local storage
+const createClient = () => createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 //Declare types
 type Row = {
   [key: string]: any;
 };
 
-type Rows = Row[] | null;
+type Rows = Row[] | null | undefined;
 
 type FetchData = () => Promise<Rows>;
 
@@ -99,8 +106,6 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
 
     //Setup state and memos
     const memoizedFilters = useDeepCompareMemo(() => filters, [filters]);
-    const [data, setData] = useState<Rows>(null);
-    const [sortedData, setSortedData] = useState<Rows>(null);
     const [sortField, setSortField] = useState<string>(initialSortField);
     const [sortDirection, setSortDirection] =
       useState<SortDirection>(initialSortDirection);
@@ -110,18 +115,6 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
 
     //Error resulting from a mutation as opposed to SWR fetcher
     const [mutationError, setMutationError] = useState<string | null>(null);
-
-    //When data or sorting changes, set sortedData
-    //This works better with opsimistic updates than directly sorting data in query / mutation functions
-    //Because the user may change sort order partway through async query/mutation causes glitches
-    //This takes care of sort automatically whenever data or sort changes, making it smooth & easy
-    useEffect(() => {
-      if (data) {
-        const newData = [...data];
-        newData.sort(getSortFunc(sortField, sortDirection));
-        setSortedData(newData);
-      }
-    }, [data, sortField, sortDirection]);
 
     //Function that can be called to fetch data
     const fetchData: FetchData = useCallback(async () => {
@@ -154,29 +147,21 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
 
     //Fetch data using SWR
     const {
-      data: fetchedData,
+      data,
       error: rawFetcherErr,
       mutate,
       isValidating,
-    } = useSWR(`/${queryName}`, fetchData, {
+    } = useMutablePlasmicQueryData(`/${queryName}`, fetchData, {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       shouldRetryOnError: false,
     });
 
-    //When filters, tablename, columns or disableFetchData changes, refetch data
+    //When filters, tablename, columns, disableFetchData changes, refetch data
     useEffect(() => {
       console.log('refetching useffect');
       mutate().catch((err) => setMutationError(getErrMsg(err)));
     }, [memoizedFilters, tableName, columns, disableFetchData, mutate]);
-
-    //When data changes, set data
-    //In turn this will cause change to sortedData
-    useEffect(() => {
-      if (fetchedData) {
-        setData(fetchedData);
-      }
-    }, [fetchedData]);
 
     //When error changes from SWR, set fetcherError
     useEffect(() => {
@@ -597,11 +582,11 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         <DataProvider
           name={queryName || "SupabaseProvider"}
           data={{
-            isLoading: (isValidating && !fetchedData) || forceLoading,
+            isLoading: (isValidating && !data) || forceLoading,
             isValidating: isValidating || forceValidating,
             mutationError,
             fetcherError,
-            data: forceNoData ? null : sortedData,
+            data: forceNoData ? null : data?.sort(getSortFunc(sortField, sortDirection)),
             sort: {
               field: sortField,
               direction: sortDirection,
@@ -609,7 +594,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
           }}
         >
           {/*Loading state - validating before we initially have data*/}
-          {((isValidating && !fetchedData) || forceLoading) && loading}
+          {((isValidating && !data) || forceLoading) && loading}
 
           {/*Validating state - any time we are running mutate() to revalidate cache*/}
           {(isValidating || forceValidating) && validating}
