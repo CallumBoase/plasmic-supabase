@@ -114,13 +114,19 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
         }
       },
       //signUp
-      signup: async (email: string, password: string, successRedirect: string) => {
+      signup: async (email: string, password: string, successRedirect: string, options?: object) => {
         try {
           const supabase = await createClient();
-          const { error } = await supabase.auth.signUp({ 
+          let signUpParams: { email: string, password: string } = { 
             email, 
             password 
-          });
+          };
+          if (options) {
+            signUpParams = { ...signUpParams, options };
+          }
+
+          const { error } = await supabase.auth.signUp(signUpParams);
+          
           if (error) throw error;
           await getUserAndSaveToState();
 
