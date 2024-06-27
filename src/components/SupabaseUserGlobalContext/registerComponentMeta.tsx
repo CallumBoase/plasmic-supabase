@@ -38,6 +38,10 @@ export const SupabaseUserGlobalContextMeta : GlobalContextMeta<SupabaseUserGloba
         {
           name:"successRedirect",
           type: "string"
+        },
+        {
+          name: "options",
+          type: "object"
         }
       ],
     },
