@@ -41,8 +41,7 @@ export const SupabaseUserGlobalContextMeta : GlobalContextMeta<SupabaseUserGloba
         },
         {
           name: "options",
-          type: "object",
-          optional: true
+          type: "object"
         }
       ],
     },

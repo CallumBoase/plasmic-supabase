@@ -117,7 +117,7 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
       signup: async (email: string, password: string, successRedirect: string, options?: object) => {
         try {
           const supabase = await createClient();
-          let signUpParams: { email: string, password: string } = { 
+          let signUpParams: { email: string, password: string, options?: object } = { 
             email, 
             password 
           };
