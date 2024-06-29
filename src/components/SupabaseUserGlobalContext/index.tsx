@@ -81,7 +81,12 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
           setError(null);
 
           //Redirect if needed
-          if((successRedirect ?? defaultRedirectOnLoginSuccess) && router) router.push(successRedirect ?? defaultRedirectOnLoginSuccess);
+          if(successRedirect ?? defaultRedirectOnLoginSuccess){
+            window.location.href = successRedirect ?? defaultRedirectOnLoginSuccess;
+            // router.push(successRedirect ?? defaultRedirectOnLoginSuccess);
+          } else {
+            window.location.reload();
+          }
           
           return;
 
@@ -105,7 +110,12 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
           setError(null);
 
           //Redirect if needed
-          if((successRedirect) && router) router.push(successRedirect);
+          if(successRedirect) {
+            window.location.href = successRedirect;
+            // router.push(successRedirect);
+          } else {
+            window.location.reload();
+          }
 
           return;
         } catch (e) {
@@ -133,7 +143,12 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
           setError(null);
 
           //Redirect if needed
-          if((successRedirect) && router) router.push(successRedirect);
+          if(successRedirect) {
+            window.location.href = successRedirect;
+            // router.push(successRedirect);
+          } else {
+            window.location.reload();
+          }
           
           // There is potential to include a signup redirect here that would redirect to a page provided in an action parameter
           return;
