@@ -12,6 +12,10 @@ interface DataProviderData {
   error: string | null;
 }
 
+interface UserMetadata {
+  [index: string]: number | string | boolean | object;
+}
+
 export interface SupabaseUserGlobalContextProps {
   children: React.ReactNode;
   defaultRedirectOnLoginSuccess?: string;
@@ -114,19 +118,19 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
         }
       },
       //signUp
-      signup: async (email: string, password: string, successRedirect: string, options?: object) => {
+      signup: async (email: string, password: string, successRedirect: string, emailRedirect?: string, userMetadata?: UserMetadata) => {
         try {
           const supabase = await createClient();
-          let signUpParams: { email: string, password: string, options?: object } = { 
-            email, 
-            password 
-          };
-          if (options) {
-            signUpParams = { ...signUpParams, options };
-          }
+          let options = Object.assign({},
+            userMetadata && { data: userMetadata },
+            emailRedirect && { emailRedirectTo: emailRedirect },
+          )
 
-          const { error } = await supabase.auth.signUp(signUpParams);
-          
+          const { error } = await supabase.auth.signUp({ 
+            email, 
+            password,
+            options 
+          });
           if (error) throw error;
           await getUserAndSaveToState();
 
@@ -136,10 +140,10 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
           if((successRedirect) && router) router.push(successRedirect);
           
           // There is potential to include a signup redirect here that would redirect to a page provided in an action parameter
-          return;
+          return true;
         } catch (e) {
           setError(getErrMsg(e))
-          return;
+          return false;
         }
       },
       //resetPassword
