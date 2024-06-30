@@ -45,6 +45,7 @@ export const SupabaseUserGlobalContextMeta : GlobalContextMeta<SupabaseUserGloba
         },
         {
           name: "userMetadata",
+          displayName: "Custom user metadata (object with key:value pairs)",
           type: "object"
         }
       ],
