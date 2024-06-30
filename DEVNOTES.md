@@ -23,7 +23,7 @@
         4. (usually not needed): clear node cache `npm cache clean --force`
         5. run `npm install /path/to/plasmic-supabase-0.0.1.tgz`
         6. run `npm run dev` to start the dev server
-* To add your changes to the main plamisc-supabase repo
+* To add your changes to the main plasmic-supabase repo
     1. Go to the main plasmic-supabase repo (not your fork)
     2. Click "Pull reqests"
     3. Click "new pull requests"
