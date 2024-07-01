@@ -178,7 +178,11 @@ In this section, we'll fix this issue so that we can define both public and logi
 
 1. In your cloned local version of your Plasmic project (see above):
     1. Stop your dev server if it's currently running (`cntrl + c` or `cmd + c` in terminal)
-    2. Add to the root directory a file called `middleware.ts` with the following content:
+    2. Install the package `@supabase/ssr` by running in terminal
+    ```bash
+    npm install @supabase/ssr
+    ```
+    3. Add to the root directory a file called `middleware.ts` with the following content:
         <details>
           <summary><strong>Contents of middleware.ts</strong></summary>
           
@@ -285,7 +289,7 @@ In this section, we'll fix this issue so that we can define both public and logi
           }
           ```
         </details>
-    3. Middleware is best tested in a production build because it behaves differently in development. Therefore build and start a local production version of your app by running:
+    4. Middleware is best tested in a production build because it behaves differently in development. Therefore build and start a local production version of your app by running:
         ```bash
         npm run build
         npm run start
@@ -310,6 +314,30 @@ In this section, we'll fix this issue so that we can define both public and logi
         * The home page `/` should load
         * The login page should load
         * The private page should load
+
+### Troubleshooting middleware
+
+#### Error 1: Cannot read properties of undefined (reading 'bind')
+* Presentation: in the terminal instance that is running your app, you see an error like this:
+    ```bash
+    TypeError: Cannot read properties of undefined (reading 'bind')
+        at NextNodeServer.handleRequestImpl (C:\VS Code repos\plasmic-supabase-middleware-pr-test\node_modules\next\dist\server\base-server.js:478:50)        
+        at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    ```
+* Cause: you haven't installed `@supabase/ssr`
+
+* Solution:
+    1. Stop your app if it's running by pressing `cntrl + c` or `cmd + c` in the terminal
+    2. Run this command in your terminal
+        ```bash
+        npm install @supabase/ssr
+        ```
+    3. Rebuild and restart your app by running
+        ```bash
+        npm run build
+        npm run start
+        ``` 
+
 
 ### Role-based access control & other advanced authorization logic
 You are free to adapt `middleware.ts` to suit the authorization needs for your app.
