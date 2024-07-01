@@ -7,6 +7,26 @@ import createClient from '../../utils/supabase/component'
 import getErrMsg from "../../utils/getErrMsg";
 import type { AuthTokenResponse } from "@supabase/supabase-js";
 
+// Note on using window.location for redirects/reloads in this component, instead of Next.js Router
+
+// Context:
+// Next.js <Link> components prefetch pages in the background for faster navigation
+// This can cause unexpected behaviour when using Middleware for login protecting pages (eg redirect to /login if not logged in)
+
+// Scenario:
+// 1. User is not logged in and visits a page that contains a <Link> to a private page
+// 2. <Link> prefetches the private page. Middleware runs caching that a redirect to /login should occur if <Link> clicked
+// 3. User logs in and we do NOT use window.locatoin.reload or window.location.href to redirect/reload
+// 4. User clicks the <Link> to the private page, but due to cached prefetch, they are redirected to /login still
+
+// Issue:
+// Middleware runs during prefetch, but not during actual navigation, causing outdated auth state checks
+
+// Solution:
+// Use window.location.reload() or window.location.href for redirects/reloads after login/logout
+// This invalidates prefetched pages, ensuring middleware runs again based on the new auth state
+
+
 interface DataProviderData {
   user: AuthTokenResponse["data"]["user"] | null;
   error: string | null;
@@ -84,10 +104,9 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
           //Reset errors if present
           setError(null);
 
-          //Redirect if needed
+          //Redirect or reload on success
           if(successRedirect ?? defaultRedirectOnLoginSuccess){
             window.location.href = successRedirect ?? defaultRedirectOnLoginSuccess;
-            // router.push(successRedirect ?? defaultRedirectOnLoginSuccess);
           } else {
             window.location.reload();
           }
@@ -113,7 +132,7 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
           //Reset errors if present
           setError(null);
 
-          //Redirect if needed
+          //Redirect or reload on success
           if(successRedirect) {
             window.location.href = successRedirect;
             // router.push(successRedirect);
@@ -146,10 +165,9 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
 
           setError(null);
 
-          //Redirect if needed
+          //Redirect or reload on success
           if(successRedirect) {
             window.location.href = successRedirect;
-            // router.push(successRedirect);
           } else {
             window.location.reload();
           }
