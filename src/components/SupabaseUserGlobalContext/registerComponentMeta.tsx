@@ -40,8 +40,12 @@ export const SupabaseUserGlobalContextMeta : GlobalContextMeta<SupabaseUserGloba
           type: "string"
         },
         {
-          name: "options",
-          displayName: "Optional: options object eg {data: {age: 25}} (see https://bit.ly/sb-docs-signup)",
+          name: "emailRedirect",
+          type: "string"
+        },
+        {
+          name: "userMetadata",
+          displayName: "Custom user metadata (object with key:value pairs)",
           type: "object"
         }
       ],

@@ -71,4 +71,5 @@ export const SupabaseStorageGetSignedUrlMeta: CodeComponentMeta<SupabaseStorageG
       argTypes: [],
     },
   },
+  importPath: "./index",
 }
