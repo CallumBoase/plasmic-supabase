@@ -24,7 +24,6 @@ const Dashboard = React.lazy(() => import("@uppy/react").then((module) => ({ def
 //https://stackoverflow.com/questions/58791636/can-you-deconstruct-lazily-loaded-react-components
 
 //General utils
-import getSupabaseProjectIdFromUrl from "../../utils/getSupabaseProjectIdFromUrl";
 import getBearerTokenForSupabase from "../../utils/getBearerTokenForSupabase";
 import { v4 as uuid } from "uuid";
 
@@ -73,7 +72,7 @@ export type SupabaseUppyUploaderProps = {
 
 //Helper function to init uppy
 export async function initUppy(
-  supabaseProjectId: string,
+  supabaseProjectURL: string,
   bearerToken: string,
   supabaseAnonKey: string
 ) {
@@ -83,7 +82,7 @@ export async function initUppy(
   const { default: Uppy } = await import("@uppy/core");
   const { default: Tus } = await import("@uppy/tus");
 
-  const supabaseStorageURL = `https://${supabaseProjectId}.supabase.co/storage/v1/upload/resumable`;
+  const supabaseStorageURL = `${supabaseProjectURL}/storage/v1/upload/resumable`;
 
   var uppy = new Uppy().use(Tus, {
     endpoint: supabaseStorageURL,
@@ -237,16 +236,12 @@ export const SupabaseUppyUploader = forwardRef<SupabaseUppyUploaderActions, Supa
     //SETUP UPPY ON INITIAL RENDER
     useEffect(() => {
 
-      const supabaseProjectId = getSupabaseProjectIdFromUrl(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!
-      );
-
       //Get the bearer token for Supabase, which will be used to authenticate Supabase Storage API calls done by Uppy.Tus plugin
       //Reason: we're using raw http requests for the api calls not supabaseJS, hence we need to manually get the token
       getBearerTokenForSupabase().then(async (token) => {
         //Initialize Uppy
         const uppy = await initUppy(
-          supabaseProjectId,
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
           token,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         )
