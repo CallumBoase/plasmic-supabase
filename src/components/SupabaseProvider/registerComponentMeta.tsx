@@ -73,7 +73,7 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
                 label: "contains every element in (contains)"
               },
               {
-                value: "containedby",
+                value: "containedBy",
                 label: "contained by (containedby)"
               },
               {
