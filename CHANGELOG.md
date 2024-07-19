@@ -1,5 +1,11 @@
 # Changelog
 
+## 2024-07-04: Version 0.3.0 -> 0.3.1
+This release does not contain any breaking changes
+* Bugfix for `SupabaseUppyUploader` component:
+    * Issue: The `SupabaseUppyUploader` component only worked for Supabase projects in the Supabase SaaS offering with a supabase.co domain (see [issue 20](https://github.com/CallumBoase/plasmic-supabase/issues/20))
+    * Fix: The `SupabaseUppyUploader` component will now work with Supabase projects with different URLs. It will respect the URL defined in the environment variable `NEXT_PUBLIC_SUPABASE_URL` for your project
+
 ## 2024-07-01: Version 0.2.0 -> 0.3.0
 This release contains breaking changes:
 * Context: Version 0.2.0 introduced the ability to specify an `options` object in the Global Action invoked via SupabaseUserGlobalContext -> signup. However, this required the user to know the shape of the options object that Supabase expects (as per [supabase docs](https://supabase.com/docs/reference/javascript/auth-signup)). 
