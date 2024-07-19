@@ -1,5 +1,9 @@
 # Changelog
 
+## 2024-07-19: Version 0.4.0 -> 0.4.1
+This release does not contain any breaking changes
+* Bugfix in `SupabaseProvider` component -> Filters props. the `containedBy` filter option had an incorrect case causing it to not work. This has been fixed so `containedBy` should function as expected now.
+
 ## 2024-07-19: Version 0.3.1 -> 0.4.0
 This release contains breaking changes:
 * Context: Previous versions used multiple catchall pages plus `getServerSideProps` to login protect pages. This was not an optimal solution and was complex to setup. 
