@@ -1,5 +1,22 @@
 # Changelog
 
+## 2024-07-19: Version 0.3.1 -> 0.4.0
+This release contains breaking changes:
+* Context: Previous versions used multiple catchall pages plus `getServerSideProps` to login protect pages. This was not an optimal solution and was complex to setup. 
+* This version introduces a new method to login protect pages via nextjs middleware. Changes to behaviour after successful login, logout and signup (in `SuapabaseUserGlobalContext` component) where required to support this.
+* Breaking changes:
+    * Substantial change in recommended setup of nextjs repo:
+        * Due to changed instructions, substantial adjustment of existing nextjs repos that used old method for login protecting pages will be needed (see updated `readme.md` for instructions)
+        * Includes removal of now-unneeded `AuthorizationCheckFunction` typescript types which were previously available for import in projects that had `plasmic-supabase` installed
+    * On successful login, logout and signup, (via `SupabaseUserGlobalContext` component) the behaviour is now different:
+        * If a "redirect on success" URL is specified
+            * Old behaviour: redirect to specified URL would occur via `router.ridrect`
+            * New behaviour: redirection is performed using `window.location.href`
+        * If a "redirect on success" URL is not specified
+            * Old behaviour: nothing happens
+            * New behaviour: the existing page will automatically reload via `window.location.reload()`
+    * Dependecies of this package have changed. They now use a later version of `@supabase/ssr` package which likely has breaking changes compared to previously used version
+
 ## 2024-07-04: Version 0.3.0 -> 0.3.1
 This release does not contain any breaking changes
 * Bugfix for `SupabaseUppyUploader` component:
