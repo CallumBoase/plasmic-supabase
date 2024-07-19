@@ -16,22 +16,22 @@
   },
   "dependencies": {
     "@plasmicapp/data-sources": "^0.1.143",
-    "@supabase/ssr": "^0.0.10",
-    "@supabase/supabase-js": "^2.39.0",
     "cookie": "^0.6.0",
     "use-deep-compare": "^1.2.1",
     "uuid": "^9.0.1"
   },
   "peerDependencies": {
+    "@supabase/ssr": "^0.4.0",
+    "@supabase/supabase-js": "^2.44.2",
     "@plasmicapp/loader-nextjs": "^1.0.371",
-    "react": "^18",
-    "react-dom": "^18",
     "@uppy/dashboard": "^3.7.5",
     "@uppy/drag-drop": "^3.0.3",
     "@uppy/file-input": "^3.1.0",
     "@uppy/progress-bar": "^3.1.0",
     "@uppy/react": "^3.2.2",
-    "@uppy/tus": "^3.5.3"
+    "@uppy/tus": "^3.5.3",
+    "react": "^18",
+    "react-dom": "^18"
   },
   "repository": {
     "type": "git",

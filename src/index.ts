@@ -9,5 +9,3 @@ export { SupabaseUppyUploaderMeta } from "./components/SupabaseUppyUploader/regi
 
 export { SupabaseStorageGetSignedUrl } from "./components/SupabaseStorageGetSignedUrl";
 export { SupabaseStorageGetSignedUrlMeta } from "./components/SupabaseStorageGetSignedUrl/registerComponentMeta";
-
-export type { AuthorizationCheckFunction, RoutePath } from "./utils/authorizationCheckFunctionTypes";
