@@ -32,7 +32,7 @@ interface Actions {
   addRow(rowForSupabase: any, optimisticRow: any): void;
   editRow(rowForSupabase: any, optimisticRow: any): void;
   flexibleMutation(
-    schema: string | undefined,  // Add schema parameter
+    schema: string | undefined,
     tableName: string,
     operation: "insert" | "update" | "delete" | "upsert",
     dataForSupabase: any,
@@ -41,7 +41,7 @@ interface Actions {
     optimisticData: any,
   ): void;
   runRpc(
-    schema: string | undefined,  // Add schema parameter
+    schema: string | undefined,
     rpcName: string,
     dataForSupabase: any,
     optimisticOperation: string | undefined,
@@ -171,7 +171,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
       shouldRetryOnError: false,
     });
 
-    //When filters, tablename, columns or disableFetchData changes, refetch data
+    //When filters, tablename, columns or disableFetchData, schemaName changes, refetch data
     useEffect(() => {
       console.log('refetching useffect');
       mutate().catch((err) => setMutationError(getErrMsg(err)));
@@ -385,7 +385,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
 
     const flexibleMutation = useCallback(
       async (
-        schema: string | undefined,  // Add schema parameter
+        schema: string | undefined,
         tableName: string,
         operation: "insert" | "update" | "delete" | "upsert",
         dataForSupabase: Row,
@@ -418,7 +418,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         //Build the flexible mutation
         const supabaseQuery = buildSupabaseQueryWithDynamicFilters({
           supabase,
-          schema: schema ?? schemaName, // Use provided schema or fall back to provider's schema
+          schema: schema ?? schemaName,
           tableName,
           operation,
           columns: null,
