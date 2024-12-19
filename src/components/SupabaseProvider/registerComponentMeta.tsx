@@ -11,6 +11,13 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
       type: "string",
       required: true,
     },
+    schema: {
+      type: "string",
+      required: false,
+      defaultValue: "public",
+      advanced: true,
+      description: "Optional, overrides public schema"
+    },
     tableName: {
       type: "string",
       required: true,
@@ -239,6 +246,7 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
     flexibleMutation: {
       description: "perform a flexible mutation",
       argTypes: [
+        { name: "schema", type: "string", displayName: "Schema (Optional, overrides public schema)" },
         { name: "tableName", type: "string", displayName: "Table name (to run mutation on)"},
         { name: "operation", type: "string", displayName: "Operation (insert / update / upsert / delete)" },
         { name: "dataForSupabase", type: "object", displayName: "Data for Supabase API call (leave blank for delete)" },
@@ -258,6 +266,7 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
     runRpc: {
       description: 'RPC for add row',
       argTypes: [
+        { name: "schema", type: "string", displayName: "Schema (Optional, overrides public schema)" }, // Add schema parameter
         { name: "rpcName", displayName: 'Name of the RPC', type: "string" },
         { name: "dataForSupabase", displayName: 'Data for Supabase API call', type: "object"},
         { 
