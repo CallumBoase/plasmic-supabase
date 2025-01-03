@@ -11,8 +11,8 @@ import { DataProvider } from "@plasmicapp/host";
 import { v4 as uuid } from "uuid";
 import { useDeepCompareMemo } from "use-deep-compare";
 
-import serverSide from "@/utils/serverSide";
-import getErrMsg from "@/utils/getErrMsg";
+import serverSide from "../../utils/serverSide";
+import getErrMsg from "../../utils/getErrMsg";
 
 //Import custom createClient that creates the Supabase client based on component render within Plasmic vs Browser
 import createClient from "../../utils/supabase/component";
