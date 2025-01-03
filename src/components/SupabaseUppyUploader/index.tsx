@@ -414,6 +414,10 @@ export const SupabaseUppyUploader = forwardRef<SupabaseUppyUploaderActions, Supa
               },
             }
             return modifiedFile;
+          } else {
+            //If we got here, the user has set an invalid value for avoidNameConflicts or something has gone wrong
+            //So we do nothing and return the file as is
+            return file;
           }
         }
       })

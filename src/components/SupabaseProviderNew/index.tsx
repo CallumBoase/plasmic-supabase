@@ -1,8 +1,8 @@
 import React, {
   useState,
-  useEffect,
+  // useEffect,
   forwardRef,
-  useCallback,
+  // useCallback,
   useImperativeHandle,
 } from "react";
 
@@ -26,10 +26,10 @@ type Row = {
   [key: string]: any;
 };
 
-type Rows = {
-  count?: number;
-  data: Row[] | null;
-};
+// type Rows = {
+//   count?: number;
+//   data: Row[] | null;
+// };
 
 type SupabaseProviderError = {
   errorId: string;

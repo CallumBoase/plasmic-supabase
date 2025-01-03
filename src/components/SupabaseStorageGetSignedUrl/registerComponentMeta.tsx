@@ -1,4 +1,4 @@
-import { CodeComponentMeta } from "@plasmicapp/loader-nextjs";
+import { CodeComponentMeta } from "@plasmicapp/host";
 import type { SupabaseStorageGetSignedUrlProps } from ".";
 
 export const SupabaseStorageGetSignedUrlMeta: CodeComponentMeta<SupabaseStorageGetSignedUrlProps> = {
