@@ -1,5 +1,5 @@
 import React from "react";
-import { DataProvider } from "@plasmicapp/loader-nextjs";
+import { DataProvider } from "@plasmicapp/host";
 import { GlobalActionsProvider } from "@plasmicapp/host";
 import { useState, useEffect, useMemo } from "react";
 import createClient from '../../utils/supabase/component'
