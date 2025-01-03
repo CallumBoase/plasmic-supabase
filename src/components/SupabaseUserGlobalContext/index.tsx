@@ -1,5 +1,4 @@
 import React from "react";
-import { useSafeRouter as useRouter } from "../../utils/useSafeRouter";
 import { DataProvider } from "@plasmicapp/loader-nextjs";
 import { GlobalActionsProvider } from "@plasmicapp/host";
 import { useState, useEffect, useMemo } from "react";
@@ -42,9 +41,6 @@ export interface SupabaseUserGlobalContextProps {
 }
 
 export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSuccess}: SupabaseUserGlobalContextProps) => {
-
-  //Nextjs router
-  const router = useRouter();
   
   //Setup state
   const [user, setUser] = useState<AuthTokenResponse["data"]["user"] | null>(null);
@@ -118,6 +114,57 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
           return;
         }
       },
+
+      //requestMagicLinkToEmail
+      requestMagicLinkToEmail: async (
+        email: string, 
+        createUserIfNotFound: boolean, 
+        userMetadata?: UserMetadata,
+        successRedirect?: string, 
+        emailRedirect?: string
+      ) => {
+        try {
+          const supabase = createClient();
+
+          const options = {
+            emailRedirectTo: emailRedirect || undefined,
+            data: userMetadata || undefined,
+            shouldCreateUser: createUserIfNotFound ? true : false
+          }
+
+          const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options
+          });
+
+          // Throw errors if present
+          if (error) {
+            throw error;
+          }
+
+          // Save the session to state
+          // Unless there's already a logged in user,
+          // It's likely there will be no session to save to state
+          await getUserAndSaveToState();
+
+          //Reset errors to nothing since it succeeded
+          setError(null);
+
+          //Redirect on success
+          //Reload is not required
+          if(successRedirect){
+            window.location.href = successRedirect;
+          }
+          
+          return;
+
+        } catch (e) {
+          setError(getErrMsg(e))
+          return;
+        }
+
+      },
+
       //Logout
       logout: async (successRedirect: string) => {
         try {
@@ -149,7 +196,7 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
       //signUp
       signup: async (email: string, password: string, successRedirect: string, emailRedirect?: string, userMetadata?: UserMetadata) => {
         try {
-          const supabase = await createClient();
+          const supabase = createClient();
           let options = Object.assign({},
             userMetadata && { data: userMetadata },
             emailRedirect && { emailRedirectTo: emailRedirect },
@@ -180,13 +227,21 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
         }
       },
       //resetPassword
-      resetPasswordForEmail: async (email: string) => {
+      resetPasswordForEmail: async (email: string, redirectTo?: string) => {
         try {
-          const supabase = await createClient();
+
+          const options = {
+            redirectTo: redirectTo || undefined
+          }
+
+          const supabase = createClient();
           const { error } = await supabase.auth.resetPasswordForEmail(
-            email // this auth function takes its parameters slightly differently. It doesn't accept named parameters like the other supabase.auth functions.
+            email, // this auth function takes its parameters slightly differently. It doesn't accept named parameters like the other supabase.auth functions.
+            options
           );
           if (error) throw error;
+          await getUserAndSaveToState();
+          setError(null);
           return;
         } catch (e) {
           setError(getErrMsg(e))
@@ -200,18 +255,55 @@ export const SupabaseUserGlobalContext = ({children, defaultRedirectOnLoginSucce
         // i.e. requiring an expiring token to be passed in the /changepassword URL, validating the token against the supabase DB, only displaying the page if the toekn was valid, otherwise redirect
       updateUserPassword: async (password: string) => {
         try {
-          const supabase = await createClient();
+          const supabase = createClient();
           const { error } = await supabase.auth.updateUser({
             password: password
           });
           if (error) throw error;
+          await getUserAndSaveToState();
+          setError(null);
+          return;
+        } catch (e) {
+          setError(getErrMsg(e))
+          return;
+        }
+      },
+      // Update user
+      // This action/function assumes the user has an active session (either by having "Logged in" or clicking the password reset confirmation from a recovery email)
+      // Full-option user update function using same underlying method as updateUserPassword
+      updateUser: async (
+        password?: string, 
+        email?: string, 
+        phone?: string, 
+        userMetadata?: UserMetadata, 
+        emailRedirect?: string,
+        nonce?: string
+      ) => {
+        try {
+          const supabase = createClient();
+          const { error } = await supabase.auth.updateUser(
+            {
+              password: password || undefined,
+              email: email || undefined,
+              phone: phone || undefined,
+              data: userMetadata || undefined,
+              nonce: nonce || undefined,
+            },
+            {
+              emailRedirectTo: emailRedirect || undefined
+            }
+          );
+          if (error) throw error;
+          await getUserAndSaveToState();
+          setError(null);
+          return;
         } catch (e) {
           setError(getErrMsg(e))
           return;
         }
       },
     }),
-    [defaultRedirectOnLoginSuccess, router]
+    [defaultRedirectOnLoginSuccess]
   );
   
   //Setup the data that will be passed as global context to Plasmic studio

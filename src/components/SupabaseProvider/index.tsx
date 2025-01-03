@@ -2,374 +2,366 @@ import React, {
   useState,
   useEffect,
   forwardRef,
-  useImperativeHandle,
   useCallback,
+  useImperativeHandle,
 } from "react";
+import { useMutablePlasmicQueryData } from "@plasmicapp/query";
+import { DataProvider } from "@plasmicapp/host";
+import { v4 as uuid } from "uuid";
 import { useDeepCompareMemo } from "use-deep-compare";
 
-import { DataProvider } from "@plasmicapp/loader-nextjs";
-import useSWR from "swr";
+//Import custom createClient that creates the Supabase client based on component render within Plasmic vs Browser
 import createClient from "../../utils/supabase/component";
-import getSortFunc, { type SortDirection } from "../../utils/getSortFunc";
+
 import buildSupabaseQueryWithDynamicFilters, {
   type Filter,
+  type OrderBy,
 } from "../../utils/buildSupabaseQueryWithDynamicFilters";
-import getErrMsg from "../../utils/getErrMsg";
 
 //Declare types
 type Row = {
   [key: string]: any;
 };
 
-type Rows = Row[] | null;
+type Rows = {
+  count?: number;
+  data: Row[] | null;
+};
 
-type FetchData = () => Promise<Rows>;
+type SupabaseProviderError = {
+  errorId: string;
+  summary: string;
+  errorObject: any;
+  actionAttempted: string;
+  recordId: string | null;
+  rowForSupabase: Row | Rows | null;
+};
+
+type MutationResponse = {
+  data: Row | Row[] | [] | null;
+  error: SupabaseProviderError | null;
+};
 
 interface Actions {
-  sortRows(sortField: string, sortDirection: "asc" | "desc"): Promise<void>;
+  //TODO: with optionality turned off (ie. no .select() after the .insert or .update), would add and edit return null or the standard api response code like 200 etc? A: Rows can be null and also it could be an empty Array of Rows.
+  addRow(
+    rowForSupabase: any,
+    shouldReturnRow: boolean,
+    returnImmediately: boolean
+  ): Promise<any>;
+  editRow(
+    rowForSupabase: any,
+    shouldReturnRow: boolean,
+    returnImmediately: boolean
+  ): Promise<any>;
+  deleteRow(
+    id: any,
+    shouldReturnRow: boolean,
+    returnImmediately: boolean
+  ): Promise<any>;
   refetchRows(): Promise<void>;
-  deleteRow(id: any): void;
-  addRow(rowForSupabase: any, optimisticRow: any): void;
-  editRow(rowForSupabase: any, optimisticRow: any): void;
   flexibleMutation(
     tableName: string,
     operation: "insert" | "update" | "delete" | "upsert",
     dataForSupabase: any,
     filters: Filter[] | undefined,
-    optimisticOperation: string | undefined,
-    optimisticData: any,
-  ): void;
-  runRpc(
-    rpcName: string,
-    dataForSupabase: any,
-    optimisticOperation: string | undefined,
-    optimisticData: any
-  ): void;
+    shouldReturnRow: boolean,
+    returnImmediately: boolean
+  ): Promise<any>;
+  runRpc(rpcName: string, args: any, returnImmediately: boolean): Promise<any>;
 }
 
 export interface SupabaseProviderProps {
-  className?: string;
-  queryName: string;
+  children: React.ReactNode;
   tableName: string;
   columns: string;
-  filters?: Filter[];
+  filters: Filter[];
+  orderBy: OrderBy[];
+  limit?: number;
+  offset?: number;
   uniqueIdentifierField: string;
-  hideDefaultErrors: boolean;
-  children: React.ReactNode;
-  loading: React.ReactNode;
-  validating: React.ReactNode;
-  noData: React.ReactNode;
-  forceNoData: boolean;
-  forceQueryError: boolean;
-  forceMutationError: boolean;
-  forceLoading: boolean;
-  forceValidating: boolean;
-  generateRandomErrors: boolean;
-  initialSortField: string;
-  initialSortDirection: "asc" | "desc";
+  returnCount?: "none" | "exact" | "planned" | "estimated";
+  onError?: (supabaseProviderError: SupabaseProviderError) => void;
   disableFetchData: boolean;
+  simulateRandomMutationErrors: boolean;
+  forceMutationError: boolean;
+  queryName: string;
+  className?: string;
 }
 
-//Define the Supabase provider component
+// Helper function
+const executeWithOptionalAwait = async (
+  mutateFunction: () => Promise<any>,
+  returnImmediately: boolean,
+  errorHandler: (error: any) => any
+) => {
+  if (returnImmediately) {
+    mutateFunction().catch(err => errorHandler(err));
+    console.log("Immediate return");
+    return null;
+  } else {
+    try {
+      const result = await mutateFunction();
+      console.log("Awaited return");
+      return result;
+    } catch (err) {
+      return errorHandler(err);
+    }
+  }
+};
+
+//The component
 export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
   function SupabaseProvider(props, ref) {
     const {
-      //All avialable props destructured
-      className,
-      queryName,
+      children,
       tableName,
       columns,
       filters,
+      orderBy,
+      limit,
+      offset,
       uniqueIdentifierField,
-      hideDefaultErrors,
-      children,
-      loading,
-      validating,
-      noData,
-      forceNoData,
-      forceQueryError,
-      forceMutationError,
-      forceLoading,
-      forceValidating,
-      generateRandomErrors,
-      initialSortField,
-      initialSortDirection,
+      returnCount,
+      onError,
       disableFetchData,
+      simulateRandomMutationErrors,
+      forceMutationError,
+      queryName,
+      className,
     } = props;
 
-    //Setup state and memos
+    const [isMutating, setIsMutating] = useState<boolean>(false);
+    const [fetchError, setFetchError] = useState<SupabaseProviderError | null>(
+      null
+    );
     const memoizedFilters = useDeepCompareMemo(() => filters, [filters]);
-    const [data, setData] = useState<Rows>(null);
-    const [sortedData, setSortedData] = useState<Rows>(null);
-    const [sortField, setSortField] = useState<string>(initialSortField);
-    const [sortDirection, setSortDirection] =
-      useState<SortDirection>(initialSortDirection);
 
-    //string version of the raw error object from SWR
-    const [fetcherError, setFetcherError] = useState<string | null>(null);
-
-    //Error resulting from a mutation as opposed to SWR fetcher
-    const [mutationError, setMutationError] = useState<string | null>(null);
-
-    //When data or sorting changes, set sortedData
-    //This works better with opsimistic updates than directly sorting data in query / mutation functions
-    //Because the user may change sort order partway through async query/mutation causes glitches
-    //This takes care of sort automatically whenever data or sort changes, making it smooth & easy
-    useEffect(() => {
-      if (data) {
-        const newData = [...data];
-        newData.sort(getSortFunc(sortField, sortDirection));
-        setSortedData(newData);
-      }
-    }, [data, sortField, sortDirection]);
-
-    //Function that can be called to fetch data
-    const fetchData: FetchData = useCallback(async () => {
+    //Function to fetch records from Supabase
+    const fetchData = async () => {
+      setIsMutating(false);
+      setFetchError(null);
 
       //Just return an empty array if the user has disabled data fetch (so they can just run element actions)
-      if(disableFetchData) return [];
+      if (disableFetchData) return [];
 
-      console.log('fetchData')
+      try {
+        //Create new supabase client
+        const supabase = createClient();
 
-      //New client
-      const supabase = createClient();
+        //Build the query with dynamic filters that were passed as props to the component
+        const supabaseQuery = buildSupabaseQueryWithDynamicFilters({
+          supabase,
+          tableName,
+          operation: "select",
+          columns,
+          dataForSupabase: null,
+          filters: memoizedFilters,
+          orderBy,
+          limit,
+          offset,
+          returnCount,
+        });
 
-      //Build the query with dynamic filters that were passed as props to the component
-      const supabaseQuery = buildSupabaseQueryWithDynamicFilters({
-        supabase,
-        tableName,
-        operation: 'select',
-        columns,
-        dataForSupabase: null,
-        filters: memoizedFilters,
-      });
+        //Initiate the query and await the response
+        const { data, error, count } = await supabaseQuery;
 
-      //Execute the query
-      const { data, error } = await supabaseQuery;
-      if (error) {
-        throw error;
+        if (error) {
+          throw error;
+        }
+
+        return { data, count };
+      } catch (err) {
+        //build the error object
+        console.error(err);
+        const supabaseProviderError = {
+          errorId: uuid(),
+          summary: "Error fetching records",
+          errorObject: err,
+          actionAttempted: "read",
+          rowForSupabase: null,
+          recordId: null,
+        };
+
+        setFetchError(supabaseProviderError);
+        if (onError && typeof onError === "function") {
+          onError(supabaseProviderError);
+        }
+        throw err;
       }
-      return data;
-    }, [tableName, columns, memoizedFilters, disableFetchData]);
+    };
 
-    //Fetch data using SWR
+    //Use the useMutablePlasmicQueryData hook to fetch the data
+    //Works very similar to useSWR
+    //Note that we pass filters, limit and offset along with queryName to ensure we create a new cache when they change
+    //Avoiding issues like flash of old content while data is fetching with new filters or data is paginated
+    //And the useMutablePlasmicQueryData not being recalled so an old version of fetchData with wrong filters is used
     const {
-      data: fetchedData,
-      error: rawFetcherErr,
+      data,
+      //The error object from useSWR/useMutablePlasmicQueryData contains errors from mutation and fetch
+      //We don't use it because we customise behaviour below, to give separate fetch & mutation behavior
+      //error,
       mutate,
-      isValidating,
-    } = useSWR(`/${queryName}`, fetchData, {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      shouldRetryOnError: false,
-    });
-
-    //When filters, tablename, columns or disableFetchData changes, refetch data
-    useEffect(() => {
-      console.log('refetching useffect');
-      mutate().catch((err) => setMutationError(getErrMsg(err)));
-    }, [memoizedFilters, tableName, columns, disableFetchData, mutate]);
-
-    //When data changes, set data
-    //In turn this will cause change to sortedData
-    useEffect(() => {
-      if (fetchedData) {
-        setData(fetchedData);
+      isLoading,
+    } = useMutablePlasmicQueryData(
+      [queryName, JSON.stringify(filters), limit, offset, returnCount],
+      fetchData,
+      {
+        shouldRetryOnError: false,
       }
-    }, [fetchedData]);
-
-    //When error changes from SWR, set fetcherError
-    useEffect(() => {
-      if (rawFetcherErr) {
-        setFetcherError(getErrMsg(rawFetcherErr));
-      } else {
-        setFetcherError(null);
-      }
-    }, [rawFetcherErr]);
-
-    //When forceQueryError changes, set fetcherEror
-    useEffect(() => {
-      if (forceQueryError) {
-        setFetcherError("Simulated query error!");
-      } else {
-        setFetcherError(null);
-      }
-    }, [forceQueryError]);
-
-    //When forceMutationError changes, set mutationError
-    useEffect(() => {
-      if (forceMutationError) {
-        setMutationError("Simulated mutation error!");
-      } else {
-        setMutationError(null);
-      }
-    }, [forceMutationError]);
-
-    /*FUNCTIONS TO HANDLE OPTIMISTIC UPDATES*/
-
-    //Function that just returns the data unchanged
-    //To pass in as an optimistic update function when no optimistic update is desired
-    //Effectively disabling optimistic updates for the operation
-    function returnUnchangedData(data: Rows) {
-      return data;
-    }
-
-    //Function to replace entire optimistic data with new data
-    const replaceDataOptimistically = useCallback((_data: Rows, optimisticData: Rows) => {
-      return optimisticData;
-    }, []);
-
-    //Function for optimistic add of a row to existing data
-    //Adds a new row to the end of the array
-    //This will be sorted automatically by useEffect above
-    const addRowOptimistically = useCallback(
-      (data: Rows | null, optimisticRow: Row) => {
-        const newData = [...(data || []), optimisticRow];
-        return newData;
-      },
-      []
     );
 
-    //Function for optimistic edit of a row in existing data
-    //Replaces the row by matching uniqueIdentifierField (id)
-    const editRowOptimistically = useCallback(
-      (data: Rows, optimisticRow: Row) => {
-        const newData =
-          data?.map((existingRow) => {
-            if (
-              optimisticRow[uniqueIdentifierField] ===
-              existingRow[uniqueIdentifierField]
-            ) {
-              return optimisticRow;
-            }
-            return existingRow;
-          }) || [];
-        return newData;
-      },
-      [uniqueIdentifierField]
-    );
+    //When fetchData function is rebuilt, re-fetch the data
+    useEffect(() => {
+      mutate();
+    }, [
+      mutate,
+      tableName,
+      columns,
+      memoizedFilters,
+      orderBy,
+      disableFetchData,
+      limit,
+      offset,
+      returnCount,
+    ]);
 
-    //Helper function to optimistically delete a row from the data
-    //optimisticData is either an object with the unique identifier field (usually 'id') present in the first level of the object
-    //or a number or string (the actual value of the unique identifier field (id) to filter by)
-    const deleteRowOptimistically = useCallback(
-      (data: Rows, optimisticData: number | string | Row) => {
-        
-        //Extract the unique identifier value from the optimistic data
-        //So we can filter the row out of the data based on this
-        let uniqueIdentifierVal: any;
+    /*useEffect(() => {
+          if (forceMutationError) {
+            throw new Error('Simulated mutation error');
+          }
+        }, [forceMutationError])*/
 
-        if (typeof optimisticData === "object") {
-          //If the unique identifier is an object, look for the unique identifier value in the object
-          //Based on the user-specified unique identifier field
-          //Eg {a: 1, id: 123} would extract 123
-          uniqueIdentifierVal = optimisticData[uniqueIdentifierField];
-        } else {
-          //Otherwise, assume the uniqueIdentifierVal has been directly provided eg value of '123'
-          uniqueIdentifierVal = optimisticData;
-        }
-
-        //If the extracted value for the unique identifier is not a number or string, throw an error
-        if (
-          typeof uniqueIdentifierVal !== "number" &&
-          typeof uniqueIdentifierVal !== "string"
-        ) {
-          throw new Error(`
-            Unable to optimistically delete row. The optimistic data passed was invalid so we could not extract a value for uniquely identifying the row to delete.
-            Optimistic data for delete row must be a number, a string, or an object with the unique identifier field (usually 'id') present in the first level of the object.
-          `);
-        }
-
-        //Filter out the row from the data based on the unique identifier value
-        const newData = data?.filter(
-          (row) => row[uniqueIdentifierField] !== uniqueIdentifierVal
-        );
-        if (!newData) return null;
-
-        return newData;
-      },
-      [uniqueIdentifierField]
-    );
-
-    /*FUNCTIONS TO HANDLE SUPABASE API CALLS*/
-    //All return data via optimistic function to avoid refetch in the mutation
-    //because useSWR will refetch after mutation is finished anyway
-
-    //Function to add a row in supabase
+    //Function to actually add row to Supabase via an API call
     const addRow = useCallback(
-      async (
-        rowForSupabase: Row,
-        optimisticRow: Row,
-        optimisticFunc: (data: Rows, optimisticData: any) => Rows
-      ) => {
-        
-        //When specified, generate random errors for Plasmic studio testing
-        if (generateRandomErrors && Math.random() > 0.5)
-          throw new Error("Randomly generated error on addRow");
+      async (rowForSupabase: Row, shouldReturnRow: boolean): Promise<any> => {
+        //typed to any because we had to have ts ignore types on the dynamic query build below so it doesn't understand the response types
 
-        //Add the row to supabase
+        if (simulateRandomMutationErrors && Math.random() > 0.5) {
+          //1 second delay
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          throw new Error("Simulated error adding record");
+        }
+
+        //Simulate a 2 second delay
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        //Add the record to Supabase
         const supabase = createClient();
-        const { error } = await supabase.from(tableName).insert(rowForSupabase);
-        if (error) throw error;
-        return optimisticFunc(data, optimisticRow);
+
+        let query = supabase.from(tableName).insert(rowForSupabase);
+
+        //typescript ignore next line because you don't like the dynamic query build, however we know it's safe to run a select on an insert
+        
+        if (shouldReturnRow) {
+          //@ts-ignore
+          query = query.select();
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          const supabaseProviderError = {
+            errorId: uuid(),
+            summary: "Error adding row",
+            errorObject: error,
+            actionAttempted: "insert",
+            rowForSupabase: rowForSupabase,
+            recordId: null,
+          };
+          return { data: null, error: supabaseProviderError };
+        }
+
+        return {
+          //if not specified to return the added row, return an empty array to indicate success
+          data: shouldReturnRow ? data : [],
+          error: null,
+        };
       },
-      [data, generateRandomErrors, tableName]
+      [tableName, simulateRandomMutationErrors]
     );
 
-    //Function to actually update row in supabase
+    //Function to actually edit row in Supabase via an API call
     const editRow = useCallback(
-      async (
-        rowForSupabase: Row, 
-        optimisticRow: Row,
-        optimisticFunc: (data: Rows, optimisticData: any) => Rows
-      ) => {
+      async (rowForSupabase: Row, shouldReturnRow: boolean): Promise<any> => {
+        //typed to any because we had to have ts ignore types on the dynamic query build below so it doesn't understand the response types
 
-        //When specified, generate random errors for Plasmic studio testing
-        if (generateRandomErrors && Math.random() > 0.5)
-          throw new Error("Randomly generated error on editRow");
+        if (simulateRandomMutationErrors && Math.random() > 0.5) {
+          //1 second delay
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          throw new Error("Simulated error editing record");
+        }
 
-        //Update the row in supabase
+        //Simulate a 2 second delay
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        //Update the record in Supabase
         const supabase = createClient();
-        const { error } = await supabase
+
+        let query = supabase
           .from(tableName)
           .update(rowForSupabase)
           .eq(uniqueIdentifierField, rowForSupabase[uniqueIdentifierField]);
-        if (error) throw error;
-        return optimisticFunc(data, optimisticRow);
+
+        //typescript ignore next line because you don't like the dynamic query build, however we know it's safe to run a select on an update
+        if (shouldReturnRow) {
+          //@ts-ignore
+          query = query.select();
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          throw error;
+        }
+
+        return shouldReturnRow ? data : []; //if not specified to return the added row, return an empty array to indicate success
       },
-      [
-        data,
-        generateRandomErrors,
-        tableName,
-        uniqueIdentifierField,
-      ]
+      [tableName, simulateRandomMutationErrors, uniqueIdentifierField]
     );
 
-    //Helper function to actually delete a row in Supabase
+    //Function to actually delete row in Supabase via an API call
     const deleteRow = useCallback(
-      async (uniqueIdentifierVal: number | string) => {
+      async (
+        uniqueIdentifierValue: number | string,
+        shouldReturnRow: boolean
+      ): Promise<any> => {
+        //typed to any because we had to have ts ignore types on the dynamic query build below so it doesn't understand the response types
 
-        //When specified, generate random errors for Plasmic studio testing
-        if (generateRandomErrors && Math.random() > 0.5)
-          throw new Error("Randomly generated error on deleteRow");
+        if (simulateRandomMutationErrors && Math.random() > 0.5) {
+          //1 second delay
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          throw new Error("Simulated error deleting record");
+        }
 
-        //Delete the row in supabase
+        //Simulate a 2 second delay
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        //Update the record in Supabase
         const supabase = createClient();
-        const { error } = await supabase
+
+        let query = supabase
           .from(tableName)
           .delete()
-          .eq(uniqueIdentifierField, uniqueIdentifierVal);
-        if (error) throw error;
+          .eq(uniqueIdentifierField, uniqueIdentifierValue);
 
-        return deleteRowOptimistically(data, uniqueIdentifierVal);
+        //Todo: no need for option to return row for delete - it's not possible
+        //typescript ignore next line because you don't like the dynamic query build, however we know it's safe to run a select on a delete
+        //@ts-ignore
+        if (shouldReturnRow) {
+          //@ts-ignore
+          query = query.select();
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          throw error;
+        }
+
+        return shouldReturnRow ? data : []; //if not specified to return the added row, return an empty array to indicate success
       },
-      [
-        data,
-        generateRandomErrors,
-        tableName,
-        uniqueIdentifierField,
-        deleteRowOptimistically,
-      ]
+      [tableName, simulateRandomMutationErrors, uniqueIdentifierField]
     );
 
     const flexibleMutation = useCallback(
@@ -378,257 +370,351 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         operation: "insert" | "update" | "delete" | "upsert",
         dataForSupabase: Row,
         filters: Filter[] | undefined,
-        optimisticData: any,
-        optimisticFunc: (data: Rows, optimisticData: any) => Rows
-      ) => {
-        //When specified, generate random errors for Plasmic studio testing
-        if (generateRandomErrors && Math.random() > 0.5)
-          throw new Error("Randomly generated error on flexibleMutation");
+        shouldReturnRow: boolean,
+        orderBy: null
+      ): Promise<MutationResponse> => {
+        if (simulateRandomMutationErrors && Math.random() > 0.5) {
+          //1 second delay
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          throw new Error("Simulated error deleting record");
+        }
+
+        //Simulate a 2 second delay
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
         //New supabase client
         const supabase = createClient();
 
         //Check for obvious errors
-        if( ["insert", "update", "upsert", "delete"].includes(operation) === false ) {
-          throw new Error('Flexible query error: Invalid operation. Allowed options are "insert", "update", "upsert", or "delete"');
+        if (
+          ["insert", "update", "upsert", "delete"].includes(operation) === false
+        ) {
+          throw new Error(
+            'Flexible query error: Invalid operation. Allowed options are "insert", "update", "upsert", or "delete"'
+          );
         }
 
-        if(operation !== "delete" && !dataForSupabase) {
-          throw new Error('Flexible query error: You must provide dataForSupabase when running operations: insert, update or upsert.');
+        if (operation !== "delete" && !dataForSupabase) {
+          throw new Error(
+            "Flexible query error: You must provide dataForSupabase when running operations: insert, update or upsert."
+          );
         }
 
-        if(operation === "delete" || operation === "update") {
-          if(!filters || filters.length === 0) {
-            throw new Error('Flexible query error: You must provide at least one filter when running operations: update or delete.');
+        if (operation === "delete" || operation === "update") {
+          if (!filters || filters.length === 0) {
+            throw new Error(
+              "Flexible query error: You must provide at least one filter when running operations: update or delete."
+            );
           }
         }
 
         //Build the flexible mutation
-        const supabaseQuery = buildSupabaseQueryWithDynamicFilters({
+        let query = buildSupabaseQueryWithDynamicFilters({
           supabase,
           tableName,
           operation,
           columns: null,
           dataForSupabase,
-          filters
+          filters,
+          orderBy,
         });
 
         //Run the flexible mutation
-        const { error } = await supabaseQuery;
-        if (error) throw error;
+        if (shouldReturnRow) {
+          query = query.select();
+        }
 
-        return optimisticFunc(data, optimisticData);
+        const { data, error } = await query;
+
+        if (error) {
+          throw error;
+        }
+
+        return shouldReturnRow ? data : []; //if not specified to return the added row, return an empty array to indicate success
       },
-      [data, generateRandomErrors]
-    )
+      [simulateRandomMutationErrors]
+    );
 
     //Function to run an RPC (database function) in supabase
     const rpc = useCallback(
-      async (
-        rpcName: string,
-        dataForSupabase: any,
-        optimisticData: any,
-        optimisticFunc: (data: Rows, optimisticData: any) => Rows
-      ) => {
+      async (rpcName: string, args: any) => {
+        if (simulateRandomMutationErrors && Math.random() > 0.5) {
+          //1 second delay
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          throw new Error("Simulated error deleting record");
+        }
 
-        //When specified, generate random errors for Plasmic studio testing
-        if (generateRandomErrors && Math.random() > 0.5)
-          throw new Error("Randomly generated error on run RPC");
+        //Simulate a 2 second delay
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
         //Run the RPC
         const supabase = createClient();
-        //Typescript ignore next line because it's a dynamic function call that typescript doesn't know available options for
-        // @ts-ignore
-        const { error } = await supabase.rpc(rpcName, dataForSupabase);
-        if (error) throw error;
 
-        return optimisticFunc(data, optimisticData);
+        let query = supabase.rpc(rpcName, args);
+        const { data, error } = await query;
+
+        console.log(data);
+        console.error(error);
+
+        if (error) {
+          throw error;
+        }
+        return data; //if the function returns void, this would currently by null. Error would also be null.
       },
-      [data, generateRandomErrors]
+      [simulateRandomMutationErrors]
     );
 
-    //Helper function to choose the correct optimistic data function to run
-    function chooseOptimisticFunc(
-      optimisticOperation: string | null | undefined,
-      elementActionName: string
-    ) {
-      if (optimisticOperation === "addRow") {
-        return addRowOptimistically;
-      } else if (optimisticOperation === "editRow") {
-        return editRowOptimistically;
-      } else if (optimisticOperation === "deleteRow") {
-        return deleteRowOptimistically;
-      } else if (optimisticOperation === "replaceData") {
-        return replaceDataOptimistically;
-      } else {
-        //None of the above, but something was specified
-        if (optimisticOperation) {
-          throw new Error(`
-              Invalid optimistic operation specified in "${elementActionName}" element action.
-              You specified  "${optimisticOperation}" but the allowed values are "addRow", "editRow", "deleteRow", "replaceData" or left blank for no optimistic operation.
-          `);
+    //Define element actions to run from Plasmic Studio
+    useImperativeHandle(ref, () => ({
+      //Element action to add a record & auto-refetch when done
+      addRow: async (rowForSupabase, shouldReturnRow, returnImmediately) => {
+        // default values for backward compatibility
+        setIsMutating(true);
+
+        const buildSupabaseProviderError = (error: any) => {
+          return {
+            errorId: uuid(),
+            summary: "Error adding row",
+            errorObject: error,
+            actionAttempted: "insert",
+            rowForSupabase: rowForSupabase || null,
+            recordId: null,
+          };
+        };
+
+        async function addRowWrapper() {
+          return addRow(rowForSupabase, shouldReturnRow)
+            .then((data) => ({ data, error: null }))
+            .catch((error) => {
+              const supabaseProviderError = buildSupabaseProviderError(error);
+              if (onError && typeof onError === "function") {
+                onError(supabaseProviderError);
+              }
+              return { data: null, error: supabaseProviderError };
+            });
         }
 
-        //Nothing specified, function that does not change data (ie no optimistic operation)
-        return returnUnchangedData;
-      }
-    }
+        const mutateFunction = () =>
+          //@ts-ignore
+          mutate(addRowWrapper, {
+            populateCache: false,
+            revalidate: true,
+            rollbackOnError: true,
+          });
 
-    /*Define element actions which can be called in Plasmic Studio*/
-    useImperativeHandle(ref, () => ({
+        const result = await executeWithOptionalAwait(
+          mutateFunction,
+          returnImmediately,
+          buildSupabaseProviderError
+        );
 
-      //Element action to sort rows
-      sortRows: async (sortField, sortDirection) => {
-        setMutationError(null)
-        setSortField(sortField);
-        setSortDirection(sortDirection);
+        return result;
       },
 
-      //Element action to refetch data from supabase
+      //Element action to edit a record and auto-refetch when done
+      editRow: async (rowForSupabase, shouldReturnRow, returnImmediately) => {
+        // default values for backward compatibility
+        setIsMutating(true);
+
+        const errorHandler = (error: any) => {
+          const supabaseProviderError = {
+            errorId: uuid(),
+            summary: "Error editing row",
+            errorObject: error,
+            actionAttempted: "update",
+            rowForSupabase: rowForSupabase || null,
+            recordId: rowForSupabase[uniqueIdentifierField],
+          };
+          if (onError && typeof onError === "function") {
+            onError(supabaseProviderError);
+          }
+          return { data: null, error: supabaseProviderError };
+        };
+
+        const mutateFunction = () =>
+          mutate(
+            //@ts-ignore
+            editRow(rowForSupabase, shouldReturnRow)
+              .then((result) => ({ data: result, error: null }))
+              .catch((error) => errorHandler(error)),
+            {
+              populateCache: false,
+              revalidate: true,
+              rollbackOnError: true,
+            }
+          );
+
+        const result = await executeWithOptionalAwait(
+          mutateFunction,
+          returnImmediately,
+          errorHandler
+        );
+
+        return result;
+      },
+
+      //Element action to delete a record and auto-refetch when done
+      deleteRow: async (
+        uniqueIdentifierValue,
+        shouldReturnRow,
+        returnImmediately
+      ) => {
+        // default values for backward compatibility
+        setIsMutating(true);
+
+        const errorHandler = (error: any) => {
+          const supabaseProviderError = {
+            errorId: uuid(),
+            summary: "Error deleting row",
+            errorObject: error,
+            actionAttempted: "delete",
+            rowForSupabase: null,
+            recordId: uniqueIdentifierValue,
+          };
+          if (onError && typeof onError === "function") {
+            onError(supabaseProviderError);
+          }
+          return { data: null, error: supabaseProviderError };
+        };
+
+        const mutateFunction = () =>
+          mutate(
+            //@ts-ignore
+            deleteRow(uniqueIdentifierValue, shouldReturnRow)
+              .then((result) => ({ data: result, error: null }))
+              .catch((error) => errorHandler(error)),
+            {
+              populateCache: false,
+              revalidate: true,
+              rollbackOnError: true,
+            }
+          );
+
+        const result = await executeWithOptionalAwait(
+          mutateFunction,
+          returnImmediately,
+          errorHandler
+        );
+
+        return result;
+      },
+
+      //Element action to simply refetch the data with the fetcher
       refetchRows: async () => {
-        setMutationError(null)
-        mutate().catch((err) => setMutationError(getErrMsg(err)));
+        mutate();
       },
 
-      //Element action to delete a row with optional optimistic update & auto-refetch when done
-      deleteRow: async (uniqueIdentifierVal) => {
-        setMutationError(null)
-        mutate(deleteRow(uniqueIdentifierVal), {
-          populateCache: true,
-          optimisticData: deleteRowOptimistically(data, uniqueIdentifierVal),
-        }).catch((err) => setMutationError(getErrMsg(err)));
-      },
-
-      //Element action to add a row with optional optimistic update & auto-refetch when done
-      addRow: async (rowForSupabase, optimisticRow) => {
-        setMutationError(null)
-        //Choose the optimistic function based on whether the user has specified optimisticRow
-        //No optimisticRow means the returnUnchangedData func will be used, disabling optimistic update
-        let optimisticOperation = optimisticRow ? "addRow" : null;
-        const optimisticFunc = chooseOptimisticFunc(
-          optimisticOperation,
-          "Add Row"
-        );
-
-        //Run the mutation
-        mutate(addRow(rowForSupabase, optimisticRow, optimisticFunc), {
-          populateCache: true,
-          optimisticData: optimisticFunc(data, optimisticRow),
-        }).catch((err) => setMutationError(getErrMsg(err)));
-      },
-
-      //Element action to edit a row with optional optimistic update & auto-refetch when done
-      editRow: async (rowForSupabase, optimisticRow) => {
-        setMutationError(null)
-        //Choose the optimistic function based on whether the user has specified optimisticRow
-        //No optimisticRow means the returnUnchangedData func will be used, disabling optimistic update
-        let optimisticOperation = optimisticRow ? "editRow" : null;
-        const optimisticFunc = chooseOptimisticFunc(
-          optimisticOperation,
-          "Edit Row"
-        );
-
-        //Run the mutation
-        mutate(editRow(rowForSupabase, optimisticRow, optimisticFunc), {
-          populateCache: true,
-          optimisticData: optimisticFunc(data, optimisticRow),
-        }).catch((err) => setMutationError(getErrMsg(err)));
-      },
-
-      //Element action to run a flexible mutation with optimistic operation (addRow, editRow, deleteRow, replaceData or none)
-      //and auto-refetch when done
+      //Element action to run a more flexible mutation with less checks auto-refetch when done
       flexibleMutation: async (
         tableName,
         operation,
         dataForSupabase,
         filters,
-        optimisticOperation,
-        optimisticData
+        shouldReturnRow,
+        returnImmediately
       ) => {
-        setMutationError(null)
+        // default values for backward compatibility
+        setIsMutating(true);
 
-        //Choose the correct optimistic function based on user's settings in the element action in studio
-        const optimisticFunc = chooseOptimisticFunc(
-          optimisticOperation,
-          "Flexible Mutation" //The name of the element action for error messages
+        const errorHandler = (error: any) => {
+          const supabaseProviderError = {
+            errorId: uuid(),
+            summary: "Error with flexible mutation",
+            errorObject: error,
+            actionAttempted: operation,
+            rowForSupabase: dataForSupabase || null,
+            recordId: null, //filters?.forEach((filter) => {filter.fieldName, filter.value, filter.value2})
+          };
+          if (onError && typeof onError === "function") {
+            onError(supabaseProviderError);
+          }
+          return { data: null, error: supabaseProviderError };
+        };
+
+        const mutateFunction = () =>
+          mutate(
+            //@ts-ignore
+            flexibleMutation(
+              tableName,
+              operation,
+              dataForSupabase,
+              filters,
+              shouldReturnRow
+            )
+              .then((result) => ({ data: result, error: null }))
+              .catch((error) => errorHandler(error)),
+            {
+              populateCache: false,
+              revalidate: true,
+              rollbackOnError: true,
+            }
+          );
+
+        const result = await executeWithOptionalAwait(
+          mutateFunction,
+          returnImmediately,
+          errorHandler
         );
 
-        //Run the operation with optimistically updated data
-        //if optimisticOperation is not specified, the optimisticFunc will be returnUnchangedData, disabling optimistic update
-        mutate(flexibleMutation(tableName, operation, dataForSupabase, filters, optimisticData, optimisticFunc), {
-          populateCache: true,
-          optimisticData: optimisticFunc(data, optimisticData),
-        }).catch((err) => setMutationError(getErrMsg(err)));
+        return result;
       },
 
-      //Element action to run a supabase RPC (database function) with optimistic operation (addRow, editRow, deleteRow, replaceData or none)
-      //and auto-refetch when done
-      runRpc: async (
-        rpcName,
-        dataForSupabase,
-        optimisticOperation,
-        optimisticData
-      ) => {
-        setMutationError(null)
+      runRpc: async (rpcName, args, returnImmediately) => {
+        setIsMutating(true);
 
-        //Choose the correct optimistic function based on user's settings in the element action in studio
-        const optimisticFunc = chooseOptimisticFunc(
-          optimisticOperation,
-          "Run RPC" //The name of the element action for error messages
+        const errorHandler = (error: any) => {
+          const supabaseProviderError = {
+            errorId: uuid(),
+            summary: "Error with RPC",
+            errorObject: error,
+            actionAttempted: "rpc",
+            rowForSupabase: args || null,
+            recordId: null,
+          };
+          if (onError && typeof onError === "function") {
+            onError(supabaseProviderError);
+          }
+          return { data: null, error: supabaseProviderError };
+        };
+
+        const mutateFunction = () =>
+          mutate(
+            //@ts-ignore
+            rpc(rpcName, args)
+              .then((result) => ({ data: result, error: null }))
+              .catch((error) => errorHandler(error)),
+            {
+              populateCache: false,
+              revalidate: true,
+              rollbackOnError: true,
+            }
+          );
+
+        const result = await executeWithOptionalAwait(
+          mutateFunction,
+          returnImmediately,
+          errorHandler
         );
 
-        //Run the operation with optimistically updated data
-        //if optimisticOperation is not specified, the optimisticFunc will be returnUnchangedData, disabling optimistic update
-        mutate(rpc(rpcName, dataForSupabase, optimisticData, optimisticFunc), {
-          populateCache: true,
-          optimisticData: optimisticFunc(data, optimisticData),
-        }).catch((err) => setMutationError(getErrMsg(err)));
-      },
-
-      //Element action to Clear any mutation errors
-      clearError: () => {
-        setMutationError(null);
+        return result;
       },
     }));
 
-    //Render the component
     return (
       <div className={className}>
         <DataProvider
-          name={queryName || "SupabaseProvider"}
+          name={queryName}
           data={{
-            isLoading: (isValidating && !fetchedData) || forceLoading,
-            isValidating: isValidating || forceValidating,
-            mutationError,
-            fetcherError,
-            data: forceNoData ? null : sortedData,
-            sort: {
-              field: sortField,
-              direction: sortDirection,
-            },
+            //@ts-ignore
+            data: data?.data,
+            //@ts-ignore
+            count: data?.count,
+            isLoading,
+            isMutating,
+            fetchError,
           }}
         >
-          {/*Loading state - validating before we initially have data*/}
-          {((isValidating && !fetchedData) || forceLoading) && loading}
-
-          {/*Validating state - any time we are running mutate() to revalidate cache*/}
-          {(isValidating || forceValidating) && validating}
-
-          {/*No data state*/}
-          {(!data || data.length === 0 || forceNoData) && noData}
-
-          {/*Error state - error is currently there according to SWR*/}
-          {fetcherError && !hideDefaultErrors && (
-            <p>Error from fetching records: {fetcherError}</p>
-          )}
-
-          {/*Error state - error is currently there according to mutation*/}
-          {mutationError && !hideDefaultErrors && (
-            <p>Error from mutation: {mutationError}</p>
-          )}
-
-          {/*Render children with data provider - when we have data*/}
-          {(data || !tableName) && children}
+          {children}
         </DataProvider>
       </div>
     );
