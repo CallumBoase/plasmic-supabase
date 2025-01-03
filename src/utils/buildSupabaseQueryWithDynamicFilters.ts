@@ -1,5 +1,5 @@
 import { type SupabaseClient } from "@supabase/supabase-js";
-import { PostgrestTransformBuilder, PostgrestFilterBuilder, PostgrestQueryBuilder } from "@supabase/postgrest-js"
+import { PostgrestTransformBuilder, PostgrestFilterBuilder } from "@supabase/postgrest-js"
 
 import {
   supabaseJsFilterOperators_oneArg,

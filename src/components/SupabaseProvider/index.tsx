@@ -126,7 +126,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
       onError,
       disableFetchData,
       simulateRandomMutationErrors,
-      forceMutationError,
+      // forceMutationError,
       queryName,
       className,
     } = props;
