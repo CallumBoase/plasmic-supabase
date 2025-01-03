@@ -1,6 +1,6 @@
 {
   "name": "plasmic-supabase",
-  "version": "0.5.0-alpha-1",
+  "version": "0.5.0-alpha-2",
   "description": "Code components to use Supabase as a backend for a Plasmic app",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -54,6 +54,7 @@
     "@uppy/progress-bar": "^3.1.0",
     "@uppy/react": "^3.2.2",
     "@uppy/tus": "^3.5.3",
+    "next": "^14.2.22",
     "react": "^18",
     "react-dom": "^18"
   },

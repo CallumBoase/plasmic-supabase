@@ -1,4 +1,4 @@
-import { type GetServerSidePropsContext } from 'next'
+import type { GetServerSidePropsContext } from 'next';
 import { createServerClient, serializeCookieHeader } from '@supabase/ssr'
 
 export function createClient({ req, res }: GetServerSidePropsContext) {
