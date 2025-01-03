@@ -54,11 +54,12 @@ export interface SupabaseProviderNewProps {
   skipServerSidePrefetch: boolean;
   addDelayForTesting: boolean;
   simulateRandomFetchErrors: boolean;
+  simulateRandomMutationErrors: boolean;
 }
 
 interface Actions {
   addRow(
-    rowForSupabase: any,
+    rowForSupabase: Row,
     shouldReturnRow: boolean,
     returnImmediately: boolean
   ): Promise<any>;
@@ -157,6 +158,8 @@ export const SupabaseProviderNew = forwardRef<Actions, SupabaseProviderNewProps>
 
     }
 
+    // hook to actually fetch the data, and provide a mutate function to refetch
+    // runs on mount, when props or fetcher change, and after mutation
     const {
       data,
       //error - will not use see notes in KnackProvider
@@ -183,7 +186,12 @@ export const SupabaseProviderNew = forwardRef<Actions, SupabaseProviderNewProps>
       }
     );
 
-    // Element actions
+    // Function to add a row in Supabase
+    const addRow = async(rowForSupabase: Row, shouldReturnRow: boolean) => {
+
+    }
+
+    // Element actions exposed to run in Plasmic Studio
     useImperativeHandle(ref, () => ({
       addRow: async () => console.log("test"),
       //Element action to simply refetch the data with the fetcher

@@ -225,6 +225,14 @@ export const SupabaseProviderNewMeta : CodeComponentMeta<SupabaseProviderNewProp
         Whether to simulate random fetch errors when fetching data from Supabase. Useful for testing.`,
       advanced: true
     },
+    simulateRandomMutationErrors: {
+      type: "boolean",
+      required: false,
+      defaultValue: false,
+      description: `
+        Whether to simulate random mutation errors when mutating data in Supabase. Useful for testing.`,
+      advanced: true
+    },
   },
   refActions: {
     refetchRows: {
