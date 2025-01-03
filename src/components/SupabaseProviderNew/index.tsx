@@ -85,6 +85,7 @@ export const SupabaseProviderNew = forwardRef<Actions, SupabaseProviderNewProps>
       skipServerSidePrefetch,
       addDelayForTesting,
       simulateRandomFetchErrors,
+      simulateRandomMutationErrors,
     } = props;
 
     // console.log(props)
