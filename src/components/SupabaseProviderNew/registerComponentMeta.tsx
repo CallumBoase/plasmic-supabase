@@ -235,6 +235,14 @@ export const SupabaseProviderNewMeta : CodeComponentMeta<SupabaseProviderNewProp
     },
   },
   refActions: {
+    addRow: {
+      description: "Add a row to the database",
+      argTypes: [
+        { name: "rowForSupabase", type: "object", displayName: "Row object to send to Supabase" },
+        { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
+        { name: "returnImmedaitely", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
+      ],
+    },
     refetchRows: {
       description: "refetch rows from the database",
       argTypes: [],
