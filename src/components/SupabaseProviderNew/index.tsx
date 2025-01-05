@@ -17,29 +17,24 @@ import getErrMsg from "../../utils/getErrMsg";
 //Import custom createClient that creates the Supabase client based on component render within Plasmic vs Browser
 import createClient from "../../utils/supabase/component";
 
-import type {
-  PostgrestResponseSuccess,
-  // PostgrestResponseFailure
-} from "@supabase/postgrest-js";
-
 import buildSupabaseQueryWithDynamicFilters, {
   type Filter,
   type OrderBy,
 } from "../../utils/buildSupabaseQueryWithDynamicFilters";
 
+import type {
+  PostgrestResponseSuccess,
+} from "@supabase/postgrest-js";
+
+// Type for a single Supabase row - an object with key-value pairs
 type Row = {
   [key: string]: any;
 };
 
-type SupabaseResponseData = PostgrestResponseSuccess<Row>["data"];
+// Type for multiple Supabase rows - an array of objects with key-value pairs
+type Rows = Row[];
 
-// type Row = PostgrestResponseSuccess<any>["data"];
-
-// type Rows = {
-//   count?: number;
-//   data: Row[] | null;
-// };
-
+// Custom error object for SupabaseProvider
 type SupabaseProviderError = {
   errorId: string;
   summary: string;
@@ -48,11 +43,34 @@ type SupabaseProviderError = {
   rowForSupabase: Row | null;
 };
 
-type SupabaseProviderMutationResponse = {
-  data: Row | null;
-  error: SupabaseProviderError | null;
-};
+// Type for the response from the fetcher function
+// Uses { data, count } from supabase.select() response
+// And we add our own version of error (or null)
+type SupabaseProviderFetchResult = {
+  data: PostgrestResponseSuccess<Rows>["data"] | null,
+  count: PostgrestResponseSuccess<Rows>["count"] | null
+}
 
+// Type for the response from a mutate function
+// Uses { data, count } from supabase.insert/update/delete/rpc/select() response
+// And we include an error object (or null)
+type SupabaseProviderMutateResult = {
+  data: PostgrestResponseSuccess<Rows>["data"] | null,
+  count: PostgrestResponseSuccess<Rows>["count"] | null,
+  errorFromMutation: SupabaseProviderError | null
+}
+
+// Types for the element actions (useImperativeHandle) exposed to run in Plasmic Studio
+interface Actions {
+  addRow(
+    rowForSupabase: Row,
+    shouldReturnRow: boolean,
+    returnImmediately: boolean
+  ): Promise<SupabaseProviderFetchResult>;
+  refetchRows(): Promise<void>;
+}
+
+//Props the SupabaseProvider component accepts (configured in Plasmic studio)
 export interface SupabaseProviderNewProps {
   children: React.ReactNode;
   className?: string;
@@ -71,15 +89,7 @@ export interface SupabaseProviderNewProps {
   simulateRandomMutationErrors: boolean;
 }
 
-interface Actions {
-  addRow(
-    rowForSupabase: Row,
-    shouldReturnRow: boolean,
-    returnImmediately: boolean
-  ): Promise<SupabaseProviderMutationResponse>;
-  refetchRows(): Promise<void>;
-}
-
+// The SupabaseProvider component itself
 export const SupabaseProviderNew = forwardRef<
   Actions,
   SupabaseProviderNewProps
@@ -102,26 +112,27 @@ export const SupabaseProviderNew = forwardRef<
     simulateRandomMutationErrors,
   } = props;
 
-  // console.log(props)
-
+  // Custom state to track if the component is currently mutating data
   const [isMutating, setIsMutating] = useState<boolean>(false);
-  const [fetchError, setFetchError] = useState<SupabaseProviderError | null>(
+
+  // Custom state to track any fetch errors
+  const [errorFromFetch, setErrorFromFetch] = useState<SupabaseProviderError | null>(
     null
   );
   const memoizedFilters = useDeepCompareMemo(() => filters, [filters]);
   const memoizedOrderBy = useDeepCompareMemo(() => orderBy, [orderBy]);
 
   // Function to fetch rows from Supabase
-  const fetchData = async (): Promise<SupabaseResponseData | null> => {
+  const fetchData = async (): Promise<SupabaseProviderFetchResult> => {
     setIsMutating(false);
-    setFetchError(null);
+    setErrorFromFetch(null);
 
     // If the user has opted-out of server-side prefetch of data via extractPlasmicQueryData
     // and we are currently in the server-side environment
-    // then we return null instead of running the query to fetch data
-    // This forces the query to run first in the browser
+    // then we immediately return null data, count and error
+    // This will be passed as initial data, until fetch occurs client-side
     if (serverSide() && skipServerSidePrefetch) {
-      return null;
+      return { data: null, count: null };
     }
 
     try {
@@ -152,13 +163,13 @@ export const SupabaseProviderNew = forwardRef<
         );
       }
 
-      const { data, error, count } = await supabaseQuery;
+      const { data, count, error } = await supabaseQuery;
 
       if (error) {
         throw error;
       }
 
-      return { data, count };
+      return { data, count};
     } catch (err) {
       console.error(err);
       const supabaseProviderError = {
@@ -168,7 +179,7 @@ export const SupabaseProviderNew = forwardRef<
         actionAttempted: "read",
         rowForSupabase: null,
       };
-      setFetchError(supabaseProviderError);
+      setErrorFromFetch(supabaseProviderError);
       if (onError && typeof onError === "function") {
         onError(supabaseProviderError);
       }
@@ -206,7 +217,7 @@ export const SupabaseProviderNew = forwardRef<
 
   // Function to add a row in Supabase
   const addRowMutator = useCallback(
-    async (rowForSupabase: Row, shouldReturnRow: boolean) : Promise<Row | null> => {
+    async (rowForSupabase: Row, shouldReturnRow: boolean) : Promise<SupabaseProviderFetchResult> => {
       // Build the supabase query to insert the row with optional return of the new row
       const supabase = createClient();
 
@@ -229,47 +240,45 @@ export const SupabaseProviderNew = forwardRef<
       }
 
       // Run the query
-      const { data, error } = await query;
+      const { data, count, error } = await query;
 
       if (error) {
         throw error;
       }
 
-      return data;
+      return { data, count };
 
-      // return {
-      //   data: data,
-      //   error: null,
-      // };
     },
     [tableName, columns, addDelayForTesting, simulateRandomMutationErrors]
   );
 
   // Element actions exposed to run in Plasmic Studio
   useImperativeHandle(ref, () => ({
-    addRow: async (rowForSupabase, shouldReturnRow, returnImmediately) : Promise<SupabaseProviderMutationResponse> => {
+    addRow: async (rowForSupabase, shouldReturnRow, returnImmediately) : Promise<SupabaseProviderMutateResult> => {
       setIsMutating(true);
 
       try {
-        const data = await mutate(addRowMutator(rowForSupabase, shouldReturnRow), {
+        const response = await mutate(addRowMutator(rowForSupabase, shouldReturnRow), {
           populateCache: false,
           revalidate: true,
           rollbackOnError: true,
         });
 
-        console.log(data);
+        console.log(response);
 
         //Typescript says that result could be undefined. If so, handle it
-        if(!data) {
+        if(!response) {
           return {
             data: null,
-            error: null,
+            count: null,
+            errorFromMutation: null,
           }
         }
 
         return {
-          data,
-          error: null
+          data: response.data,
+          count: null,
+          errorFromMutation: null
         }
 
       } catch (err) {
@@ -285,7 +294,8 @@ export const SupabaseProviderNew = forwardRef<
         }
         return {
           data: null,
-          error: supabaseProviderError,
+          count: null,
+          errorFromMutation: supabaseProviderError,
         };
       }
     },
@@ -303,7 +313,7 @@ export const SupabaseProviderNew = forwardRef<
           data,
           isLoading,
           isMutating,
-          fetchError,
+          fetchError: errorFromFetch,
         }}
       >
         {children}
