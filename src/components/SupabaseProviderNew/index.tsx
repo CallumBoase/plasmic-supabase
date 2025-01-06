@@ -55,9 +55,12 @@ type SupabaseProviderFetchResult = {
 // Uses { data, count } from supabase.insert/update/delete/rpc/select() response
 // And we include an error object (or null)
 type SupabaseProviderMutateResult = {
-  data: PostgrestResponseSuccess<Rows>["data"] | null,
-  count: PostgrestResponseSuccess<Rows>["count"] | null,
-  errorFromMutation: SupabaseProviderError | null
+  data: PostgrestResponseSuccess<Rows>["data"] | null;
+  count: PostgrestResponseSuccess<Rows>["count"] | null;
+  action: "insert" | "update" | "delete" | "rpc" | "flexibleMutation";
+  summary: string;
+  success: boolean;
+  error: SupabaseProviderError | null;
 }
 
 // Types for the element actions (useImperativeHandle) exposed to run in Plasmic Studio
@@ -271,10 +274,13 @@ export const SupabaseProviderNew = forwardRef<
           rollbackOnError: true,
         });
 
-        let result = {
+        let result : SupabaseProviderMutateResult = {
           data: response ? response.data : null,
           count: response ? response.count : null,
-          errorFromMutation: null
+          action: "insert",
+          summary: "Successfully added row",
+          success: true,
+          error: null,
         };
 
         if(onMutateSuccess && typeof onMutateSuccess === "function") {
@@ -297,7 +303,10 @@ export const SupabaseProviderNew = forwardRef<
         return {
           data: null,
           count: null,
-          errorFromMutation: supabaseProviderError,
+          action: "insert",
+          summary: "Error adding row",
+          success: false,
+          error: supabaseProviderError
         };
       }
     },
