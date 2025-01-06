@@ -39,7 +39,7 @@ type SupabaseProviderError = {
   errorId: string;
   summary: string;
   errorMessage: string;
-  actionAttempted: string;
+  actionAttempted: "select" | "insert" | "update" | "delete" | "rpc" | "flexibleMutation";
   rowForSupabase: Row | null;
 };
 
@@ -83,6 +83,7 @@ export interface SupabaseProviderNewProps {
   offset?: number;
   returnCount?: "none" | "exact" | "planned" | "estimated";
   onError: (supabaseProviderError: SupabaseProviderError) => void;
+  onMutateSuccess: (supabaseProviderMutateResult: SupabaseProviderMutateResult) => void;
   skipServerSidePrefetch: boolean;
   addDelayForTesting: boolean;
   simulateRandomFetchErrors: boolean;
@@ -106,6 +107,7 @@ export const SupabaseProviderNew = forwardRef<
     offset,
     returnCount,
     onError,
+    onMutateSuccess,
     skipServerSidePrefetch,
     addDelayForTesting,
     simulateRandomFetchErrors,
@@ -127,11 +129,14 @@ export const SupabaseProviderNew = forwardRef<
     setIsMutating(false);
     setErrorFromFetch(null);
 
+    console.log(serverSide(), 'serverSide()')
+
     // If the user has opted-out of server-side prefetch of data via extractPlasmicQueryData
     // and we are currently in the server-side environment
     // then we immediately return null data, count and error
     // This will be passed as initial data, until fetch occurs client-side
     if (serverSide() && skipServerSidePrefetch) {
+      console.log('skipping server-side prefetch of data')
       return { data: null, count: null };
     }
 
@@ -169,14 +174,16 @@ export const SupabaseProviderNew = forwardRef<
         throw error;
       }
 
+      console.log('fetch done', data?.length)
+
       return { data, count};
     } catch (err) {
       console.error(err);
-      const supabaseProviderError = {
+      const supabaseProviderError : SupabaseProviderError = {
         errorId: uuid(),
         summary: "Error fetching records",
         errorMessage: getErrMsg(err),
-        actionAttempted: "read",
+        actionAttempted: "select",
         rowForSupabase: null,
       };
       setErrorFromFetch(supabaseProviderError);
@@ -258,28 +265,23 @@ export const SupabaseProviderNew = forwardRef<
       setIsMutating(true);
 
       try {
-        const response = await mutate(addRowMutator(rowForSupabase, shouldReturnRow), {
+        let response = await mutate(addRowMutator(rowForSupabase, shouldReturnRow), {
           populateCache: false,
           revalidate: true,
           rollbackOnError: true,
         });
 
-        console.log(response);
-
-        //Typescript says that result could be undefined. If so, handle it
-        if(!response) {
-          return {
-            data: null,
-            count: null,
-            errorFromMutation: null,
-          }
-        }
-
-        return {
-          data: response.data,
-          count: null,
+        let result = {
+          data: response ? response.data : null,
+          count: response ? response.count : null,
           errorFromMutation: null
+        };
+
+        if(onMutateSuccess && typeof onMutateSuccess === "function") {
+          onMutateSuccess(result);
         }
+
+        return result;
 
       } catch (err) {
         const supabaseProviderError: SupabaseProviderError = {
@@ -313,7 +315,7 @@ export const SupabaseProviderNew = forwardRef<
           data,
           isLoading,
           isMutating,
-          fetchError: errorFromFetch,
+          errorFromFetch,
         }}
       >
         {children}
