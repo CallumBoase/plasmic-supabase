@@ -83,7 +83,7 @@ export interface SupabaseProviderNewProps {
   offset?: number;
   returnCount?: "none" | "exact" | "planned" | "estimated";
   onError: (supabaseProviderError: SupabaseProviderError) => void;
-  onMutateSuccess: (supabaseProviderMutateResult: SupabaseProviderMutateResult) => void;
+  onMutateSuccess: (mutateResult: SupabaseProviderMutateResult) => void;
   skipServerSidePrefetch: boolean;
   addDelayForTesting: boolean;
   simulateRandomFetchErrors: boolean;

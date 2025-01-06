@@ -198,6 +198,12 @@ export const SupabaseProviderNewMeta : CodeComponentMeta<SupabaseProviderNewProp
       required: false,
       description: 'Event handler for when an error occurs with fetch or mutate of data. Within this handler you can access the error that occured via the variable "supabaseProviderError"'
     },
+    onMutateSuccess: {
+      type: "eventHandler",
+      argTypes: [{name: 'mutateResult', type: 'object'}],
+      required: false,
+      description: 'Event handler for when a mutation is successful. Within this handler you can access the result of the mutation via the variable "mutateResult"'
+    },
     skipServerSidePrefetch: {
       type: "boolean",
       required: false,
