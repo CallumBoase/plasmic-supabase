@@ -252,10 +252,14 @@ export const SupabaseProviderNew = forwardRef<
       // Run the query
       const { data, count, error } = await query;
 
+      // If there is an error, throw it
       if (error) {
         throw error;
       }
 
+      // Return the data and count
+      // Count is not technically needed because we aren't counting rows, 
+      // however, the return type of this function needs to match the fetcher,  so we include it anyway
       return { data, count };
 
     },
@@ -264,54 +268,94 @@ export const SupabaseProviderNew = forwardRef<
 
   // Element actions exposed to run in Plasmic Studio
   useImperativeHandle(ref, () => ({
-    addRow: async (rowForSupabase, shouldReturnRow, returnImmediately) : Promise<SupabaseProviderMutateResult> => {
-      setIsMutating(true);
 
-      try {
-        let response = await mutate(addRowMutator(rowForSupabase, shouldReturnRow), {
+    // addRow element action
+    addRow: async (rowForSupabase, shouldReturnRow, returnImmediately) : Promise<SupabaseProviderMutateResult> => {
+      return new Promise((resolve) => {
+
+        setIsMutating(true);
+
+        // Resolve immediately if returnImmediately is true
+        // The mutation will still run in the background (see below)
+        if (returnImmediately) {
+          console.log('returning immediately')
+          resolve({
+            data: null,
+            count: null,
+            action: "insert",
+            summary: "Add row in progress",
+            status: 'pending',
+            error: null,
+          });
+        }
+
+        console.log('running mutation')
+
+        // Run the mutation
+        mutate(addRowMutator(rowForSupabase, shouldReturnRow), {
           populateCache: false,
           revalidate: true,
           rollbackOnError: true,
-        });
+        })
+        // If the mutation succeeds
+        .then((response) => {
 
-        let result : SupabaseProviderMutateResult = {
-          data: response ? response.data : null,
-          count: response ? response.count : null,
-          action: "insert",
-          summary: "Successfully added row",
-          status: 'success',
-          error: null,
-        };
+          // Build a custom result object
+          let result : SupabaseProviderMutateResult = {
+            data: response ? response.data : null,
+            count: response ? response.count : null,
+            action: "insert",
+            summary: "Successfully added row",
+            status: 'success',
+            error: null,
+          };
+          
+          // Call the onMutateSuccess event handler if it exists
+          if(onMutateSuccess && typeof onMutateSuccess === "function") {
+            onMutateSuccess(result);
+          }
 
-        if(onMutateSuccess && typeof onMutateSuccess === "function") {
-          onMutateSuccess(result);
-        }
+          //Resolve the promise with the result of the mutation (only required if returnImmediately is false)
+          if (!returnImmediately) {
+            console.log('returning result after mutation')
+            resolve(result);
+          }
 
-        return result;
+        })
+        // If the mutation errors
+        .catch((err) => {
+          // Build a custom error object
+          const supabaseProviderError: SupabaseProviderError = {
+            errorId: uuid(),
+            summary: "Error adding row",
+            errorMessage: getErrMsg(err),
+            actionAttempted: "insert",
+            rowForSupabase,
+          };
+          // Call the onError event handler if it exists
+          if (onError && typeof onError === "function") {
+            onError(supabaseProviderError);
+          }
+          //Resolve the promise with the error data (only required if returnImmediately is false)
+          //Note we resolve not reject because we want Plasmic studio to receive error data not an exception
+          if(!returnImmediately) {
+            console.log('returning error after mutation')
+            resolve({
+              data: null,
+              count: null,
+              action: "insert",
+              summary: "Error adding row",
+              status: 'error',
+              error: supabaseProviderError
+            });
+          }
+        })
 
-      } catch (err) {
-        const supabaseProviderError: SupabaseProviderError = {
-          errorId: uuid(),
-          summary: "Error adding row",
-          errorMessage: getErrMsg(err),
-          actionAttempted: "insert",
-          rowForSupabase,
-        };
-        if (onError && typeof onError === "function") {
-          onError(supabaseProviderError);
-        }
-        return {
-          data: null,
-          count: null,
-          action: "insert",
-          summary: "Error adding row",
-          status: 'error',
-          error: supabaseProviderError
-        };
-      }
+       });
 
     },
-    //Element action to simply refetch the data with the fetcher
+
+    // refetchRows element action
     refetchRows: async () => {
       mutate();
     },
