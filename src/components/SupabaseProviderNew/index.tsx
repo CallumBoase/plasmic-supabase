@@ -59,7 +59,7 @@ type SupabaseProviderMutateResult = {
   count: PostgrestResponseSuccess<Rows>["count"] | null;
   action: "insert" | "update" | "delete" | "rpc" | "flexibleMutation";
   summary: string;
-  success: boolean;
+  status: 'success' | 'error' | 'pending';
   error: SupabaseProviderError | null;
 }
 
@@ -279,7 +279,7 @@ export const SupabaseProviderNew = forwardRef<
           count: response ? response.count : null,
           action: "insert",
           summary: "Successfully added row",
-          success: true,
+          status: 'success',
           error: null,
         };
 
@@ -305,10 +305,11 @@ export const SupabaseProviderNew = forwardRef<
           count: null,
           action: "insert",
           summary: "Error adding row",
-          success: false,
+          status: 'error',
           error: supabaseProviderError
         };
       }
+
     },
     //Element action to simply refetch the data with the fetcher
     refetchRows: async () => {
