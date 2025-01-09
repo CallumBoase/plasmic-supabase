@@ -52,3 +52,4 @@ export type SupabaseProviderMutateResult = {
 // Types of Optimistic operations supported by the SupabaseProvider
 export type OptimisticOperation = "addRow" | "editRow" | "deleteRow" | "replaceData" | null;
 export type ElementActionName = "Add Row" | "Edit Row" | "Delete Row" | "Run RPC" | "Flexible Mutation";
+export type ReturnCountOptions = "none" | "exact" | "planned" | "estimated";

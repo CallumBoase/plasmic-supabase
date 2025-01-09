@@ -2,7 +2,7 @@ import { CodeComponentMeta } from "@plasmicapp/host";
 import { SupabaseProviderProps } from ".";
 
 export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
-  name: "SupabaseProviderNew",
+  name: "SupabaseProvider",
   importPath: "./index",
   providesData: true,
   props: {

@@ -1,29 +1,35 @@
+//React dependencies
 import React, {
   useState,
-  // useEffect,
   forwardRef,
-  useCallback,
   useImperativeHandle,
 } from "react";
 
+//Plasmic dependencies
 import { useMutablePlasmicQueryData } from "@plasmicapp/query";
 import { DataProvider } from "@plasmicapp/host";
+
+//Library dependencies
 import { v4 as uuid } from "uuid";
 import { useDeepCompareMemo } from "use-deep-compare";
 
+//Supabase utility functions (create client)
+import createClient from "../../utils/supabase/component";
+
+//Custom utility functions
 import serverSide from "../../utils/serverSide";
 import getErrMsg from "../../utils/getErrMsg";
-import clientSideOrderBy from "../../utils/clientSideOrderBy";
-import { useSupabaseMutations } from "./useSupabaseMutations";
-
-//Import custom createClient that creates the Supabase client based on component render within Plasmic vs Browser
-import createClient from "../../utils/supabase/component";
 
 import buildSupabaseQueryWithDynamicFilters, {
   type Filter,
   type OrderBy,
 } from "../../utils/buildSupabaseQueryWithDynamicFilters";
 
+//Custom hooks
+import { useSupabaseMutations } from "./useSupabaseMutations";
+import { useOptimisticOperations } from "./useOptimitsicOperations";
+
+//Types
 import type {
   Row,
   OptimisticRow,
@@ -31,10 +37,11 @@ import type {
   SupabaseProviderFetchResult,
   SupabaseProviderMutateResult,
   OptimisticOperation,
-  ElementActionName,
+  ReturnCountOptions
 } from "./types";
 
-// Types for the element actions (useImperativeHandle) exposed to run in Plasmic Studio
+// Declare types
+// Types for the Element actions that can be run in Plasmic Studio
 interface Actions {
   addRow(
     rowForSupabase: Row,
@@ -45,7 +52,7 @@ interface Actions {
   refetchRows(): Promise<void>;
 }
 
-//Props the SupabaseProvider component accepts (configured in Plasmic studio)
+//Props for the SupabaseProvider component
 export interface SupabaseProviderProps {
   children: React.ReactNode;
   className?: string;
@@ -56,7 +63,7 @@ export interface SupabaseProviderProps {
   orderBy: OrderBy[];
   limit?: number;
   offset?: number;
-  returnCount?: "none" | "exact" | "planned" | "estimated";
+  returnCount?: ReturnCountOptions;
   onError: (supabaseProviderError: SupabaseProviderError) => void;
   onMutateSuccess: (mutateResult: SupabaseProviderMutateResult) => void;
   skipServerSidePrefetch: boolean;
@@ -65,7 +72,7 @@ export interface SupabaseProviderProps {
   simulateRandomMutationErrors: boolean;
 }
 
-// The SupabaseProvider component itself
+// The SupabaseProvider component
 export const SupabaseProvider = forwardRef<
   Actions,
   SupabaseProviderProps
@@ -95,10 +102,12 @@ export const SupabaseProvider = forwardRef<
   // Custom state to track any fetch errors
   const [errorFromFetch, setErrorFromFetch] =
     useState<SupabaseProviderError | null>(null);
+
+  //Memoize filters and orderBy to prevent unnecessary re-renders when used a dependencies for hooks/functions
   const memoizedFilters = useDeepCompareMemo(() => filters, [filters]);
   const memoizedOrderBy = useDeepCompareMemo(() => orderBy, [orderBy]);
 
-  // Custom hook to handle mutations in Supabase
+  // Custom hook to build mutator functions for Supabase mutations
   const { addRowMutator } = useSupabaseMutations({
     tableName,
     columns,
@@ -106,7 +115,15 @@ export const SupabaseProvider = forwardRef<
     simulateRandomMutationErrors,
   });
 
+  // Custom hook that returns the chooseOptimisticFunc function
+  // This is run to provide the correct optimistic function to run at various stages of the component lifecycle
+  const chooseOptimisticFunc = useOptimisticOperations({
+    returnCount,
+    memoizedOrderBy,
+  });
+
   // Function to fetch rows from Supabase
+  // This is called by the useMutablePlasmicQueryData hook each time data needs to be fetched
   const fetchData = async (): Promise<SupabaseProviderFetchResult> => {
     setIsMutating(false);
     setErrorFromFetch(null);
@@ -203,67 +220,6 @@ export const SupabaseProvider = forwardRef<
       shouldRetryOnError: false,
     }
   );
-
-  //Function that just returns the data unchanged
-  //To pass in as an optimistic update function when no optimistic update is desired
-  //Effectively disabling optimistic updates for the operation
-  function returnUnchangedData(currentData: SupabaseProviderFetchResult | undefined) {
-    if(!currentData) {
-      return {
-        data: null,
-        count: null
-      }
-    }
-    return currentData;
-  }
-
-  //Function for optimistic add of a row to existing data
-  //Adds a new row to the end of the array
-  //This will be sorted automatically by useEffect above
-  const addRowOptimistically = useCallback(
-    (currentData: SupabaseProviderFetchResult, optimisticRow: OptimisticRow) => {
-
-      const newData = {
-        //Build a new array with existing data (if present) and the new optimistic row
-        data: clientSideOrderBy(memoizedOrderBy, [...(currentData.data || []), optimisticRow]),
-        //Increment the count if count is enabled
-        count: returnCount !== 'none' ? (currentData.count || 0) + 1 : null
-      }
-      return newData;
-    },
-    [returnCount, memoizedOrderBy]
-  );
-
-  //Helper function to choose the correct optimistic data function to run
-
-  function chooseOptimisticFunc(
-    optimisticOperation: OptimisticOperation,
-    elementActionName: ElementActionName
-  ) {
-    if (optimisticOperation === "addRow") {
-      return addRowOptimistically;
-    } else if (optimisticOperation === "editRow") {
-      return returnUnchangedData;
-      // return editRowOptimistically;
-    } else if (optimisticOperation === "deleteRow") {
-      return returnUnchangedData;
-      // return deleteRowOptimistically;
-    } else if (optimisticOperation === "replaceData") {
-      return returnUnchangedData;
-      // return replaceDataOptimistically;
-    } else {
-      //None of the above, but something was specified
-      if (optimisticOperation) {
-        throw new Error(`
-          Invalid optimistic operation specified in "${elementActionName}" element action.
-          You specified  "${optimisticOperation}" but the allowed values are "addRow", "editRow", "deleteRow", "replaceData" or left blank for no optimistic operation.
-      `);
-      }
-
-      //Nothing specified, function that does not change data (ie no optimistic operation)
-      return returnUnchangedData;
-    }
-  }
 
   // Element actions exposed to run in Plasmic Studio
   useImperativeHandle(ref, () => ({
