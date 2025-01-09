@@ -2,7 +2,7 @@ import { orderBy as lodashOrderBy } from "lodash";
 
 import type { OrderBy } from "./buildSupabaseQueryWithDynamicFilters";
 
-import type { Rows } from "../components/SupabaseProviderNew";
+import type { Rows } from "../components/SupabaseProvider/types";
 
 export default function clientSideOrderBy(orderBy: OrderBy[], data: Rows) {
   const orderByFields = orderBy.map((orderBy) => orderBy.fieldName);

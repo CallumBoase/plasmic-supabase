@@ -1,12 +1,26 @@
 import { CodeComponentMeta } from "@plasmicapp/host";
 import { SupabaseProviderProps } from ".";
 
-//Component metadata for registration in Plasmic
 export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
-  name: "SupabaseProvider",
+  name: "SupabaseProviderNew",
   importPath: "./index",
   providesData: true,
   props: {
+    children: {
+      type: "slot",
+      defaultValue: [
+        {
+          type: "text",
+          value:
+            `INSTRUCTIONS FOR SUPABASE PROVIDER:
+            1. Click the new SupabaseProvider component in the Component tree (LHS of screen) to open it's settings
+            2. In settings on RHS of screen, choose a globally unique "Query name" (eg "/pagename/staff")
+            3. Enter the correct "table name" from Supabase (eg "staff")
+            4. On LHS of screen, change the name of SupabaseProvider to match the query name
+            5. Delete this placeholder text (from "children" slot). Then add components to "children" and use the dynamic data as you wish! :)`,
+        },
+      ],
+    },
     queryName: {
       type: "string",
       required: true,
@@ -144,41 +158,6 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
       description:
         "Columns to order the results by during the query.",
     },
-    /*initialSortField: "string",
-    initialSortDirection: {
-      type: "choice",
-      options: ["asc", "desc"],
-    },*/
-    uniqueIdentifierField: {
-      type: "string",
-      required: true,
-      defaultValue: "id",
-    },
-    /*hideDefaultErrors: {
-      type: 'boolean',
-      advanced: true,
-      description: 'Hide default errors so you can use the $ctx values yourself to show custom error messages'
-    },*/
-    forceMutationError: {
-      type: "boolean",
-      advanced: true,
-    },
-    /*forceValidating: {
-      type: "boolean",
-      advanced: true,
-    },
-    forceNoData: {
-      type: "boolean",
-      advanced: true,
-    },
-    forceQueryError: {
-      type: "boolean",
-      advanced: true,
-    },
-    forceMutationError: {
-      type: "boolean",
-      advanced: true,
-    },*/
     limit: {
       type: "number",
       step: 1,
@@ -207,116 +186,63 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
       type: "eventHandler",
       argTypes: [{name: 'supabaseProviderError', type: 'object'}],
       required: false,
+      description: 'Event handler for when an error occurs with fetch or mutate of data. Within this handler you can access the error that occured via the variable "supabaseProviderError"'
     },
-    disableFetchData: {
-      type: 'boolean',
-      displayName: "Disable data fetching",
-      advanced: true,
-      description: 'Disable data fetching. Useful for when you want to just use element actions without fetching data first, eg to use the SupabaseProvider to add a row on a page where you are not displaying other rows.'
+    onMutateSuccess: {
+      type: "eventHandler",
+      argTypes: [{name: 'mutateResult', type: 'object'}],
+      required: false,
+      description: 'Event handler for when a mutation is successful. Within this handler you can access the result of the mutation via the variable "mutateResult"'
+    },
+    skipServerSidePrefetch: {
+      type: "boolean",
+      required: false,
+      defaultValue: false,
+      description: `
+        In the standard configuration of Plasmic (NextJS + Loader API), Plasmic will prefetch data form Supabase on the server before the page containing the SupabaseProvider is rendered (if data is not in cache).
+        If data is in cache, the stale data will be used (no server-side fetch), before the client-side refetch is triggered.
+        This behaviour is normally desirable because of the SEO benefits.
+        However, if you wish to disable server-side prefetch, you can set this prop to TRUE.`,
+      advanced: true
+    },
+    addDelayForTesting: {
+      type: "boolean",
+      required: false,
+      defaultValue: false,
+      description: `
+        Whether to add a 1 second delay when fetching or mutating data from Supabase. Useful for testing.`,
+      advanced: true
+    },
+    simulateRandomFetchErrors: {
+      type: "boolean",
+      required: false,
+      defaultValue: false,
+      description: `
+        Whether to simulate random fetch errors when fetching data from Supabase. Useful for testing.`,
+      advanced: true
     },
     simulateRandomMutationErrors: {
       type: "boolean",
-      advanced: true,
-    },
-    /*loading: {
-      type: "slot",
-      defaultValue: {
-        type: "text",
-        value: "Loading...",
-      },
-    },*/
-    /*validating: {
-      type: "slot",
-      defaultValue: {
-        type: "text",
-        value: "Validating...",
-      },
-    },
-    noData: {
-      type: "slot",
-      defaultValue: {
-        type: "text",
-        value: "No data",
-      },
-    },*/
-    children: {
-      type: "slot",
-      defaultValue: [
-        {
-          type: "text",
-          value:
-            `INSTRUCTIONS FOR SUPABASE PROVIDER:
-            1. Click the new SupabaseProvider component in the Component tree (LHS of screen) to open it's settings
-            2. In settings on RHS of screen, choose a globally unique "Query name" (eg "/pagename/staff")
-            3. Enter the correct "table name" from Supabase (eg "staff")
-            4. On LHS of screen, change the name of SupabaseProvider to match the query name
-            5. Delete this placeholder text (from "children" slot). Then add components to "children" and use the dynamic data as you wish! :)`,
-        },
-      ],
+      required: false,
+      defaultValue: false,
+      description: `
+        Whether to simulate random mutation errors when mutating data in Supabase. Useful for testing.`,
+      advanced: true
     },
   },
   refActions: {
-    sortRows: {
-      description: "sort rows",
+    addRow: {
+      description: "Add a row to the database",
       argTypes: [
-        { name: "sortField", type: "string" },
-        { name: "sortDirection", type: "string" },
+        { name: "rowForSupabase", type: "object", displayName: "Row object to send to Supabase" },
+        { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
+        { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
+        { name: "optimisticRow", type: "object", displayName: "Optimistic new row object (optional)" },
       ],
     },
     refetchRows: {
       description: "refetch rows from the database",
       argTypes: [],
-    },
-    deleteRow: {
-      description: "delete a row by ID",
-      argTypes: [
-        { name: "ID", type: "string", displayName: "Id / unique identifier of the row to delete" },
-        { name: "shouldReturnRow", type: "boolean", displayName: "Return added row/s? (Returns [] if false)"},
-        { name: "returnImmediately", type: "boolean"}
-      ],
-    },
-    addRow: {
-      description: "add a row",
-      argTypes: [
-        { name: "rowForSupabase", type: "object", displayName: "Row object to send to Supabase"},
-        { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row/s? (Returns [] if false)"},
-        { name: "returnImmediately", type: "boolean"}
-      ],
-    },
-    editRow: {
-      description: "edit row",
-      argTypes: [
-        { name: "rowForSupabase", type: "object", displayName: "Row object to send to Supabase"},
-        { name: "shouldReturnRow", type: "boolean", displayName: "Return edited row/s? (Returns [] if false)"},
-        { name: "returnImmediately", type: "boolean"}
-      ],
-    },
-    flexibleMutation: {
-      description: "perform a flexible mutation",
-      argTypes: [
-        { name: "tableName", type: "string", displayName: "Table name (to run mutation on)"},
-        { name: "operation", type: "string", displayName: "Operation (insert / update / upsert / delete)" },
-        { name: "dataForSupabase", type: "object", displayName: "Data for Supabase API call (leave blank for delete)" },
-        { 
-          name: "filters", 
-          type: "object", 
-          displayName: "Filters for update/delete (array of objects eg {fieldName: 'id', operator: 'eq', value: 1, value2: null})" 
-        },
-        { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row/s? (Returns [] if false)"},
-        { name: "returnImmediately", type: "boolean"}
-      ],
-    },
-    runRpc: {
-      description: 'RPC for add row',
-      argTypes: [
-        { name: "rpcName", displayName: 'Name of the RPC', type: "string" },
-        { name: "args", displayName: 'Arguments object for database function', type: "object"},
-        { name: "returnImmediately", type: "boolean"}
-      ]
-    },
-    clearError: {
-      description: "clear the latest error message",
-      argTypes: [],
-    },
-  },
-}
+    }
+  }
+};
