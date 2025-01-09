@@ -13,6 +13,7 @@ import { useDeepCompareMemo } from "use-deep-compare";
 
 import serverSide from "../../utils/serverSide";
 import getErrMsg from "../../utils/getErrMsg";
+import clientSideOrderBy from "../../utils/clientSideOrderBy";
 
 //Import custom createClient that creates the Supabase client based on component render within Plasmic vs Browser
 import createClient from "../../utils/supabase/component";
@@ -35,7 +36,7 @@ type OptimisticRow = Row & {
 }
 
 // Type for multiple Supabase rows - an array of objects with key-value pairs
-type Rows = Row[];
+export type Rows = Row[];
 
 // Custom error object for SupabaseProvider
 type SupabaseProviderError = {
@@ -256,15 +257,16 @@ export const SupabaseProviderNew = forwardRef<
   //This will be sorted automatically by useEffect above
   const addRowOptimistically = useCallback(
     (currentData: SupabaseProviderFetchResult, optimisticRow: OptimisticRow) => {
+
       const newData = {
         //Build a new array with existing data (if present) and the new optimistic row
-        data: [...(currentData.data || []), optimisticRow],
+        data: clientSideOrderBy(memoizedOrderBy, [...(currentData.data || []), optimisticRow]),
         //Increment the count if count is enabled
         count: returnCount !== 'none' ? (currentData.count || 0) + 1 : null
       }
       return newData;
     },
-    [returnCount]
+    [returnCount, memoizedOrderBy]
   );
 
   // Function to add a row in Supabase
