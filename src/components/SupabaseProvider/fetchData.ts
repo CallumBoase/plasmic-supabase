@@ -18,8 +18,8 @@ type FetchDataParams = {
   skipServerSidePrefetch: boolean;
   tableName: string;
   columns: string;
-  filters: Filter[];
-  orderBy: OrderBy[];
+  memoizedFilters: Filter[];
+  memoizedOrderBy: OrderBy[];
   limit?: number;
   offset?: number;
   returnCount?: ReturnCountOptions;
@@ -28,7 +28,7 @@ type FetchDataParams = {
   setIsMutating: (value: boolean) => void;
   setErrorFromFetch: (error: SupabaseProviderError | null) => void;
   onError?: (error: SupabaseProviderError) => void;
-}
+};
 
 // Function to fetch rows from Supabase
 // This is called by the useMutablePlasmicQueryData hook each time data needs to be fetched
@@ -36,8 +36,8 @@ export const fetchData = async ({
   skipServerSidePrefetch,
   tableName,
   columns,
-  filters: memoizedFilters,
-  orderBy,
+  memoizedFilters,
+  memoizedOrderBy,
   limit,
   offset,
   returnCount,
@@ -45,7 +45,7 @@ export const fetchData = async ({
   simulateRandomFetchErrors,
   setIsMutating,
   setErrorFromFetch,
-  onError
+  onError,
 }: FetchDataParams): Promise<SupabaseProviderFetchResult> => {
   setIsMutating(false);
   setErrorFromFetch(null);
@@ -72,7 +72,7 @@ export const fetchData = async ({
       columns,
       dataForSupabase: null,
       filters: memoizedFilters,
-      orderBy,
+      orderBy: memoizedOrderBy,
       limit,
       offset,
       returnCount,
