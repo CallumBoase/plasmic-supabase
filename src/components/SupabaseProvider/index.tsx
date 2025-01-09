@@ -32,6 +32,7 @@ interface Actions {
   addRow(rowForSupabase: any, optimisticRow: any): void;
   editRow(rowForSupabase: any, optimisticRow: any): void;
   flexibleMutation(
+    schema: string | undefined,
     tableName: string,
     operation: "insert" | "update" | "delete" | "upsert",
     dataForSupabase: any,
@@ -40,6 +41,7 @@ interface Actions {
     optimisticData: any,
   ): void;
   runRpc(
+    schema: string | undefined,
     rpcName: string,
     dataForSupabase: any,
     optimisticOperation: string | undefined,
@@ -68,6 +70,7 @@ export interface SupabaseProviderProps {
   initialSortField: string;
   initialSortDirection: "asc" | "desc";
   disableFetchData: boolean;
+  schema?: string;
 }
 
 //Define the Supabase provider component
@@ -95,7 +98,10 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
       initialSortField,
       initialSortDirection,
       disableFetchData,
+      schema
     } = props;
+
+    const schemaName: string = schema ?? 'public';
 
     //Setup state and memos
     const memoizedFilters = useDeepCompareMemo(() => filters, [filters]);
@@ -142,6 +148,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         columns,
         dataForSupabase: null,
         filters: memoizedFilters,
+        schema: schemaName,
       });
 
       //Execute the query
@@ -150,7 +157,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         throw error;
       }
       return data;
-    }, [tableName, columns, memoizedFilters, disableFetchData]);
+    }, [tableName, columns, memoizedFilters, disableFetchData, schemaName]);
 
     //Fetch data using SWR
     const {
@@ -164,11 +171,11 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
       shouldRetryOnError: false,
     });
 
-    //When filters, tablename, columns or disableFetchData changes, refetch data
+    //When filters, tablename, columns or disableFetchData, schemaName changes, refetch data
     useEffect(() => {
       console.log('refetching useffect');
       mutate().catch((err) => setMutationError(getErrMsg(err)));
-    }, [memoizedFilters, tableName, columns, disableFetchData, mutate]);
+    }, [memoizedFilters, tableName, columns, disableFetchData, schemaName, mutate]);
 
     //When data changes, set data
     //In turn this will cause change to sortedData
@@ -309,11 +316,11 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
 
         //Add the row to supabase
         const supabase = createClient();
-        const { error } = await supabase.from(tableName).insert(rowForSupabase);
+        const { error } = await supabase.schema(schemaName).from(tableName).insert(rowForSupabase);
         if (error) throw error;
         return optimisticFunc(data, optimisticRow);
       },
-      [data, generateRandomErrors, tableName]
+      [data, generateRandomErrors, tableName, schemaName]
     );
 
     //Function to actually update row in supabase
@@ -331,6 +338,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         //Update the row in supabase
         const supabase = createClient();
         const { error } = await supabase
+          .schema(schemaName)
           .from(tableName)
           .update(rowForSupabase)
           .eq(uniqueIdentifierField, rowForSupabase[uniqueIdentifierField]);
@@ -342,6 +350,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         generateRandomErrors,
         tableName,
         uniqueIdentifierField,
+        schemaName,
       ]
     );
 
@@ -356,6 +365,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         //Delete the row in supabase
         const supabase = createClient();
         const { error } = await supabase
+          .schema(schemaName)
           .from(tableName)
           .delete()
           .eq(uniqueIdentifierField, uniqueIdentifierVal);
@@ -369,11 +379,13 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         tableName,
         uniqueIdentifierField,
         deleteRowOptimistically,
+        schemaName,
       ]
     );
 
     const flexibleMutation = useCallback(
       async (
+        schema: string | undefined,
         tableName: string,
         operation: "insert" | "update" | "delete" | "upsert",
         dataForSupabase: Row,
@@ -406,6 +418,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         //Build the flexible mutation
         const supabaseQuery = buildSupabaseQueryWithDynamicFilters({
           supabase,
+          schema: schema ?? schemaName,
           tableName,
           operation,
           columns: null,
@@ -419,12 +432,13 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
 
         return optimisticFunc(data, optimisticData);
       },
-      [data, generateRandomErrors]
+      [data, generateRandomErrors, schemaName]
     )
 
     //Function to run an RPC (database function) in supabase
     const rpc = useCallback(
       async (
+        schema: string | undefined,  // Add schema parameter
         rpcName: string,
         dataForSupabase: any,
         optimisticData: any,
@@ -439,12 +453,12 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         const supabase = createClient();
         //Typescript ignore next line because it's a dynamic function call that typescript doesn't know available options for
         // @ts-ignore
-        const { error } = await supabase.rpc(rpcName, dataForSupabase);
+        const { error } = await supabase.schema(schema ?? schemaName).rpc(rpcName, dataForSupabase);
         if (error) throw error;
 
         return optimisticFunc(data, optimisticData);
       },
-      [data, generateRandomErrors]
+      [data, generateRandomErrors, schemaName]
     );
 
     //Helper function to choose the correct optimistic data function to run
@@ -538,6 +552,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
       //Element action to run a flexible mutation with optimistic operation (addRow, editRow, deleteRow, replaceData or none)
       //and auto-refetch when done
       flexibleMutation: async (
+        schema,
         tableName,
         operation,
         dataForSupabase,
@@ -555,7 +570,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
 
         //Run the operation with optimistically updated data
         //if optimisticOperation is not specified, the optimisticFunc will be returnUnchangedData, disabling optimistic update
-        mutate(flexibleMutation(tableName, operation, dataForSupabase, filters, optimisticData, optimisticFunc), {
+        mutate(flexibleMutation(schema, tableName, operation, dataForSupabase, filters, optimisticData, optimisticFunc), {
           populateCache: true,
           optimisticData: optimisticFunc(data, optimisticData),
         }).catch((err) => setMutationError(getErrMsg(err)));
@@ -564,6 +579,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
       //Element action to run a supabase RPC (database function) with optimistic operation (addRow, editRow, deleteRow, replaceData or none)
       //and auto-refetch when done
       runRpc: async (
+        schema,
         rpcName,
         dataForSupabase,
         optimisticOperation,
@@ -579,7 +595,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
 
         //Run the operation with optimistically updated data
         //if optimisticOperation is not specified, the optimisticFunc will be returnUnchangedData, disabling optimistic update
-        mutate(rpc(rpcName, dataForSupabase, optimisticData, optimisticFunc), {
+        mutate(rpc(schema, rpcName, dataForSupabase, optimisticData, optimisticFunc), {
           populateCache: true,
           optimisticData: optimisticFunc(data, optimisticData),
         }).catch((err) => setMutationError(getErrMsg(err)));

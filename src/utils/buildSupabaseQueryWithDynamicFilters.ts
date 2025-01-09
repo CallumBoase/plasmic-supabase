@@ -23,6 +23,7 @@ export type BuildSupabaseQueryWithDynamicFiltersProps = {
   columns: string | null | undefined;
   dataForSupabase: any;
   filters: Filter[] | undefined;
+  schema: string;
 };
 
 const buildSupabaseQueryWithDynamicFilters = ({
@@ -32,24 +33,25 @@ const buildSupabaseQueryWithDynamicFilters = ({
   columns,
   dataForSupabase,
   filters,
+  schema
 } : BuildSupabaseQueryWithDynamicFiltersProps) => {
   //Build the query with dynamic filters passed as props to the component
   //The basic query
   let supabaseQuery;
   if(operation === "select" ){
     if(!columns) throw new Error("Error in buildSupabaseQueryWithDynamicFilters: columns must be a string like '*' or 'id, name' for select operation.");
-    supabaseQuery = supabase.from(tableName).select(columns);
+    supabaseQuery = supabase.schema(schema).from(tableName).select(columns);
   } else if (operation === "insert") {
     if(!dataForSupabase) throw new Error("Error in buildSupabaseQueryWithDynamicFilters: dataForSupabase must be an object with key-value pairs for insert operation.");
-    supabaseQuery = supabase.from(tableName).insert(dataForSupabase);
+    supabaseQuery = supabase.schema(schema).from(tableName).insert(dataForSupabase);
   } else if (operation === "update") {
     if(!dataForSupabase) throw new Error("Error in buildSupabaseQueryWithDynamicFilters: dataForSupabase must be an object with key-value pairs for update operation.");
-    supabaseQuery = supabase.from(tableName).update(dataForSupabase);
+    supabaseQuery = supabase.schema(schema).from(tableName).update(dataForSupabase);
   } else if (operation === "upsert") {
     if(!dataForSupabase) throw new Error("Error in buildSupabaseQueryWithDynamicFilters: dataForSupabase must be an object with key-value pairs for upsert operation.");
-    supabaseQuery = supabase.from(tableName).upsert(dataForSupabase);
+    supabaseQuery = supabase.schema(schema).from(tableName).upsert(dataForSupabase);
   } else if (operation === "delete") {
-    supabaseQuery = supabase.from(tableName).delete();
+    supabaseQuery = supabase.schema(schema).from(tableName).delete();
   } else {
     throw new Error("Error in buildSupabaseQueryWithDynamicFilters: Invalid operation. Must be select, insert, update, upsert, or delete.");
   }
