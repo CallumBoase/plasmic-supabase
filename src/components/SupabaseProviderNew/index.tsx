@@ -65,6 +65,7 @@ type SupabaseProviderFetchResult = {
 // And we include an error object (or null)
 type SupabaseProviderMutateResult = {
   data: PostgrestResponseSuccess<Rows>["data"] | null;
+  optimisticData: OptimisticRow | null;
   count: PostgrestResponseSuccess<Rows>["count"] | null;
   action: "insert" | "update" | "delete" | "rpc" | "flexibleMutation";
   summary: string;
@@ -352,12 +353,22 @@ export const SupabaseProviderNew = forwardRef<
       return new Promise((resolve) => {
         setIsMutating(true);
 
+        // Determine the optimistic operation and function to run
+        // If no optimisticRow was provided, the optimistic func will be returnUnchangedData, effectively disabling optimistic ops
+        let optimisticOperation : OptimisticOperation = optimisticRow ? "addRow" : null;
+        const optimisticFunc = chooseOptimisticFunc(optimisticOperation, "Add Row");
+
+        //Add an optimistic id to the row if present
+        let optimisticRowFinal : OptimisticRow | null = null;
+        if(optimisticRow) optimisticRowFinal = { ...optimisticRow, optimisticId: uuid(), isOptimistic: true };
+
         // Resolve immediately if returnImmediately is true
         // The mutation will still run in the background (see below)
         if (returnImmediately) {
           console.log("returning immediately");
           resolve({
             data: null,
+            optimisticData: optimisticRowFinal,
             count: null,
             action: "insert",
             summary: "Add row in progress",
@@ -365,14 +376,6 @@ export const SupabaseProviderNew = forwardRef<
             error: null,
           });
         }
-
-        // Determine the optimistic operation and function to run
-        // If no optimisticRow was provided, the optimistic func will be returnUnchangedData, effectively disabling optimistic ops
-        let optimisticOperation : OptimisticOperation = optimisticRow ? "addRow" : null;
-        const optimisticFunc = chooseOptimisticFunc(optimisticOperation, "Add Row");
-
-        //Add an optimistic id to the row if present
-        optimisticRow = { ...optimisticRow, optimisticId: uuid(), isOptimistic: true };
 
         console.log("running mutation");
 
@@ -393,6 +396,7 @@ export const SupabaseProviderNew = forwardRef<
             // Build a custom result object
             let result: SupabaseProviderMutateResult = {
               data: response ? response.data : null,
+              optimisticData: optimisticRowFinal,
               count: response ? response.count : null,
               action: "insert",
               summary: "Successfully added row",
@@ -431,6 +435,7 @@ export const SupabaseProviderNew = forwardRef<
               console.log("returning error after mutation");
               resolve({
                 data: null,
+                optimisticData: optimisticRowFinal,
                 count: null,
                 action: "insert",
                 summary: "Error adding row",

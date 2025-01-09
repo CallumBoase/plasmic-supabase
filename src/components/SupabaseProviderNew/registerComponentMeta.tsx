@@ -246,7 +246,8 @@ export const SupabaseProviderNewMeta : CodeComponentMeta<SupabaseProviderNewProp
       argTypes: [
         { name: "rowForSupabase", type: "object", displayName: "Row object to send to Supabase" },
         { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
-        { name: "returnImmedaitely", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
+        { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
+        { name: "optimisticRow", type: "object", displayName: "Optimistic new row object (optional)" },
       ],
     },
     refetchRows: {
