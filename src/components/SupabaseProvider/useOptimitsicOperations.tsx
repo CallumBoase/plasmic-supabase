@@ -57,34 +57,37 @@ export function useOptimisticOperations({
   );
 
   //Helper function to choose the correct optimistic operation function to run
-  function chooseOptimisticFunc(
-    optimisticOperation: OptimisticOperation,
-    elementActionName: ElementActionName
-  ) {
-    if (optimisticOperation === "addRow") {
-      return addRowOptimistically;
-    } else if (optimisticOperation === "editRow") {
-      return returnUnchangedData;
-      // return editRowOptimistically;
-    } else if (optimisticOperation === "deleteRow") {
-      return returnUnchangedData;
-      // return deleteRowOptimistically;
-    } else if (optimisticOperation === "replaceData") {
-      return returnUnchangedData;
-      // return replaceDataOptimistically;
-    } else {
-      //None of the above, but something was specified
-      if (optimisticOperation) {
-        throw new Error(`
-            Invalid optimistic operation specified in "${elementActionName}" element action.
-            You specified  "${optimisticOperation}" but the allowed values are "addRow", "editRow", "deleteRow", "replaceData" or left blank for no optimistic operation.
-        `);
+  const buildOptimisticFunc  = useCallback(
+    (
+      optimisticOperation: OptimisticOperation,
+      elementActionName: ElementActionName
+    ) => {
+      if (optimisticOperation === "addRow") {
+        return addRowOptimistically;
+      } else if (optimisticOperation === "editRow") {
+        return returnUnchangedData;
+        // return editRowOptimistically;
+      } else if (optimisticOperation === "deleteRow") {
+        return returnUnchangedData;
+        // return deleteRowOptimistically;
+      } else if (optimisticOperation === "replaceData") {
+        return returnUnchangedData;
+        // return replaceDataOptimistically;
+      } else {
+        //None of the above, but something was specified
+        if (optimisticOperation) {
+          throw new Error(`
+              Invalid optimistic operation specified in "${elementActionName}" element action.
+              You specified  "${optimisticOperation}" but the allowed values are "addRow", "editRow", "deleteRow", "replaceData" or left blank for no optimistic operation.
+          `);
+        }
+
+        //Nothing specified, function that does not change data (ie no optimistic operation)
+        return returnUnchangedData;
       }
+    },
+    [addRowOptimistically]
+  );
 
-      //Nothing specified, function that does not change data (ie no optimistic operation)
-      return returnUnchangedData;
-    }
-  }
-
-  return chooseOptimisticFunc
+  return { buildOptimisticFunc };
 }
