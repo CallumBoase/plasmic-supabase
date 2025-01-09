@@ -1,7 +1,6 @@
-import { v4 as uuid } from "uuid";
 import createClient from "../../utils/supabase/component";
 import serverSide from "../../utils/serverSide";
-import getErrMsg from "../../utils/getErrMsg";
+import { buildSupabaseProviderError } from "./buildSupabaseProviderErr";
 
 import type {
   SupabaseProviderError,
@@ -100,13 +99,11 @@ export const fetchData = async ({
     return { data, count };
   } catch (err) {
     console.error(err);
-    const supabaseProviderError: SupabaseProviderError = {
-      errorId: uuid(),
+    const supabaseProviderError = buildSupabaseProviderError({
+      error: err,
+      operation: "select",
       summary: "Error fetching records",
-      errorMessage: getErrMsg(err),
-      actionAttempted: "select",
-      rowForSupabase: null,
-    };
+    });
     setErrorFromFetch(supabaseProviderError);
     if (onError && typeof onError === "function") {
       onError(supabaseProviderError);
@@ -114,3 +111,4 @@ export const fetchData = async ({
     throw err;
   }
 };
+

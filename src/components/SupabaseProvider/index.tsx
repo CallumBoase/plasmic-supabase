@@ -13,9 +13,8 @@ import { useDeepCompareMemo } from "use-deep-compare";
 // import createClient from "../../utils/supabase/component";
 
 //Custom utility functions
-// import serverSide from "../../utils/serverSide";
-import getErrMsg from "../../utils/getErrMsg";
 import { fetchData } from "./fetchData";
+import { buildSupabaseProviderError } from "./buildSupabaseProviderErr";
 
 import {
   type Filter,
@@ -253,13 +252,14 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
             // If the mutation errors
             .catch((err) => {
               // Build a custom error object
-              const supabaseProviderError: SupabaseProviderError = {
-                errorId: uuid(),
+
+              const supabaseProviderError = buildSupabaseProviderError({
+                error: err,
+                operation: "insert",
                 summary: "Error adding row",
-                errorMessage: getErrMsg(err),
-                actionAttempted: "insert",
                 rowForSupabase,
-              };
+              });
+
               // Call the onError event handler if it exists
               if (onError && typeof onError === "function") {
                 onError(supabaseProviderError);
