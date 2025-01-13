@@ -37,9 +37,13 @@ export type SupabaseProviderFetchResult = {
 // And we include an error object (or null)
 export type SupabaseProviderMutateResult = {
   data: PostgrestResponseSuccess<Rows>["data"] | null;
-  //optimisticData may be a single row (eg from addRow or editRow) or the entire optimisticData (eg from runRpc or fleixbleMutaiton)
-  optimisticData: OptimisticRow | Rows | null;
   count: PostgrestResponseSuccess<Rows>["count"] | null;
+  //optimisticData may be a single row (eg from addRow or editRow) or multiple rows ie the entire optimisticData (eg from runRpc or fleixbleMutaiton)
+  optimisticData: OptimisticRow | Rows | null;
+  //for runRPC and flexibleMutation, the user can specify an optimisticCount
+  //this is the count that will be displayed optimistically
+  //for addRow, editRow and deleteRow, we automatically adjuts the count optimistically so there will be no optimistic count
+  optimisticCount: number | null;
   action: "insert" | "update" | "delete" | "rpc" | "flexibleMutation";
   summary: string;
   status: "success" | "error" | "pending";

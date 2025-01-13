@@ -6,7 +6,6 @@ import { useMutablePlasmicQueryData } from "@plasmicapp/query";
 import { DataProvider } from "@plasmicapp/host";
 
 //Library dependencies
-import { v4 as uuid } from "uuid";
 import { useDeepCompareMemo } from "use-deep-compare";
 
 //Supabase utility functions (create client)
@@ -14,7 +13,7 @@ import { useDeepCompareMemo } from "use-deep-compare";
 
 //Custom utility functions
 import { fetchData } from "./fetchData";
-import { buildSupabaseProviderError } from "./buildSupabaseProviderErr";
+import { handleMutationWithOptimisticUpdates } from "./handleMutateWithOptimisticUpdates";
 
 import {
   type Filter,
@@ -28,11 +27,9 @@ import { useOptimisticOperations } from "./useOptimisticOperations";
 //Types
 import type {
   Row,
-  OptimisticRow,
   SupabaseProviderError,
   SupabaseProviderFetchResult,
   SupabaseProviderMutateResult,
-  OptimisticOperation,
   ReturnCountOptions,
 } from "./types";
 
@@ -118,7 +115,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
     });
 
     // Build the fetch data function with the current parameters
-    const fetchDataWithParams = async () => {
+    const fetcher = async () => {
       return fetchData({
         skipServerSidePrefetch,
         tableName,
@@ -158,7 +155,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         offset,
         returnCount,
       ],
-      fetchDataWithParams,
+      fetcher,
       {
         shouldRetryOnError: false,
       }
@@ -166,120 +163,28 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
 
     // Element actions exposed to run in Plasmic Studio
     useImperativeHandle(ref, () => ({
-      // addRow element action
+
       addRow: async (
-        rowForSupabase,
-        shouldReturnRow,
-        returnImmediately,
-        optimisticRow
-      ): Promise<SupabaseProviderMutateResult> => {
-        return new Promise((resolve) => {
-          setIsMutating(true);
+          rowForSupabase,
+          shouldReturnRow,
+          returnImmediately,
+          optimisticRow
+      ): Promise<SupabaseProviderFetchResult> => {
 
-          // Determine the optimistic operation and function to run
-          // If no optimisticRow was provided, the optimistic func will be returnUnchangedData, effectively disabling optimistic ops
-          let optimisticOperation: OptimisticOperation = optimisticRow
-            ? "insert"
-            : null;
-          const optimisticFunc = buildOptimisticFunc(
-            optimisticOperation,
-            "Add Row"
-          );
+        return handleMutationWithOptimisticUpdates({
+          operation: "insert",
+          dataForSupabase: rowForSupabase,
+          shouldReturnRow,
+          returnImmediately,
+          optimisticRow,
+          mutateFromUseMutablePlasmicQueryData: mutate,
+          mutatorFunction: addRowMutator,
+          buildOptimisticFunc,
+          setIsMutating,
+          onMutateSuccess,
+          onError
+        })
 
-          //Add an optimistic id to the row if present
-          let optimisticRowFinal: OptimisticRow | null = null;
-          if (optimisticRow)
-            optimisticRowFinal = {
-              ...optimisticRow,
-              optimisticId: uuid(),
-              isOptimistic: true,
-            };
-
-          // Resolve immediately if returnImmediately is true
-          // The mutation will still run in the background (see below)
-          if (returnImmediately) {
-            console.log("returning immediately");
-            resolve({
-              data: null,
-              optimisticData: optimisticRowFinal,
-              count: null,
-              action: "insert",
-              summary: "Add row in progress",
-              status: "pending",
-              error: null,
-            });
-          }
-
-          console.log("running mutation");
-
-          // Run the mutation
-          mutate(addRowMutator(rowForSupabase, shouldReturnRow), {
-            optimisticData: (currentData) =>
-              optimisticFunc(
-                //currentData could be undefined, so we default to null SupabaseProviderFetchResult if necessary
-                currentData ? currentData : { data: null, count: null },
-                //typescript thinks optimisticRow could be undefined, but we know it's not
-                optimisticRow as OptimisticRow
-              ),
-            populateCache: false,
-            revalidate: true,
-            rollbackOnError: true,
-          })
-            // If the mutation succeeds
-            .then((response) => {
-              // Build a custom result object
-              let result: SupabaseProviderMutateResult = {
-                data: response ? response.data : null,
-                optimisticData: optimisticRowFinal,
-                count: response ? response.count : null,
-                action: "insert",
-                summary: "Successfully added row",
-                status: "success",
-                error: null,
-              };
-
-              // Call the onMutateSuccess event handler if it exists
-              if (onMutateSuccess && typeof onMutateSuccess === "function") {
-                onMutateSuccess(result);
-              }
-
-              //Resolve the promise with the result of the mutation (only required if returnImmediately is false)
-              if (!returnImmediately) {
-                console.log("returning result after mutation");
-                resolve(result);
-              }
-            })
-            // If the mutation errors
-            .catch((err) => {
-              // Build a custom error object
-
-              const supabaseProviderError = buildSupabaseProviderError({
-                error: err,
-                operation: "insert",
-                summary: "Error adding row",
-                rowForSupabase,
-              });
-
-              // Call the onError event handler if it exists
-              if (onError && typeof onError === "function") {
-                onError(supabaseProviderError);
-              }
-              //Resolve the promise with the error data (only required if returnImmediately is false)
-              //Note we resolve not reject because we want Plasmic studio to receive error data not an exception
-              if (!returnImmediately) {
-                console.log("returning error after mutation");
-                resolve({
-                  data: null,
-                  optimisticData: optimisticRowFinal,
-                  count: null,
-                  action: "insert",
-                  summary: "Error adding row",
-                  status: "error",
-                  error: supabaseProviderError,
-                });
-              }
-            });
-        });
       },
 
       // refetchRows element action
