@@ -26,7 +26,7 @@ type FetchDataParams = {
   simulateRandomFetchErrors: boolean;
   setIsMutating: (value: boolean) => void;
   setErrorFromFetch: (error: SupabaseProviderError | null) => void;
-  onError?: (error: SupabaseProviderError) => void;
+  memoizedOnError?: (error: SupabaseProviderError) => void;
 };
 
 // Function to fetch rows from Supabase
@@ -44,7 +44,7 @@ export const fetchData = async ({
   simulateRandomFetchErrors,
   setIsMutating,
   setErrorFromFetch,
-  onError,
+  memoizedOnError,
 }: FetchDataParams): Promise<SupabaseProviderFetchResult> => {
   setIsMutating(false);
   setErrorFromFetch(null);
@@ -105,8 +105,8 @@ export const fetchData = async ({
       summary: "Error fetching records",
     });
     setErrorFromFetch(supabaseProviderError);
-    if (onError && typeof onError === "function") {
-      onError(supabaseProviderError);
+    if (memoizedOnError && typeof memoizedOnError === "function") {
+      memoizedOnError(supabaseProviderError);
     }
     throw err;
   }

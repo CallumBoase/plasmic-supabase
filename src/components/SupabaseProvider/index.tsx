@@ -6,7 +6,7 @@ import { useMutablePlasmicQueryData } from "@plasmicapp/query";
 import { DataProvider } from "@plasmicapp/host";
 
 //Library dependencies
-import { useDeepCompareMemo } from "use-deep-compare";
+import { useDeepCompareMemo, useDeepCompareCallback } from "use-deep-compare";
 
 //Supabase utility functions (create client)
 // import createClient from "../../utils/supabase/component";
@@ -94,6 +94,8 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
     // Memoize filters and orderBy to prevent unnecessary re-renders when used a dependencies for hooks/functions
     const memoizedFilters = useDeepCompareMemo(() => filters, [filters]);
     const memoizedOrderBy = useDeepCompareMemo(() => orderBy, [orderBy]);
+    const memoizedOnError = useDeepCompareCallback(onError, [onError]);
+    const memoizedOnMutateSuccess = useDeepCompareCallback(onMutateSuccess, [onMutateSuccess]);
 
     const { 
       handleMutation,
@@ -106,8 +108,8 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
       simulateRandomMutationErrors,
       returnCount,
       memoizedOrderBy,
-      onMutateSuccess,
-      onError,
+      memoizedOnMutateSuccess,
+      memoizedOnError,
     });
 
     // Build the fetch data function with the current parameters
@@ -125,7 +127,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         simulateRandomFetchErrors,
         setIsMutating,
         setErrorFromFetch,
-        onError,
+        memoizedOnError,
       });
     };
 

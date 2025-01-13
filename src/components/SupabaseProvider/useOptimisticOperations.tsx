@@ -4,9 +4,7 @@ import clientSideOrderBy from "../../utils/clientSideOrderBy";
 import type {
   SupabaseProviderFetchResult,
   OptimisticRow,
-  OptimisticOperation,
-  ReturnCountOptions,
-  ElementActionName
+  ReturnCountOptions
 } from "./types";
 import type { OrderBy } from "../../utils/buildSupabaseQueryWithDynamicFilters";
 
@@ -14,16 +12,6 @@ export type UseOptimisticOperationsProps = {
   returnCount?: ReturnCountOptions;
   memoizedOrderBy: OrderBy[];
 };
-
-export type OptimisticMutateFunction = (
-  currentData: SupabaseProviderFetchResult | undefined,
-  optimisticRow: OptimisticRow
-) => SupabaseProviderFetchResult;
-
-export type BuildOptimisticFunc = (
-  optimisticOperation: OptimisticOperation,
-  elementActionName: ElementActionName
-) => OptimisticMutateFunction;
 
 export function useOptimisticOperations({
   returnCount,
@@ -57,8 +45,6 @@ export function useOptimisticOperations({
         currentData = { data: null, count: null}
       }
 
-      // Determine whether we are dealing with
-
       const newData = {
         //Build a new array with existing data (if present) and the new optimistic row
         data: clientSideOrderBy(memoizedOrderBy, [
@@ -73,38 +59,5 @@ export function useOptimisticOperations({
     [returnCount, memoizedOrderBy]
   );
 
-  //Helper function to choose the correct optimistic operation function to run
-  const buildOptimisticFunc : BuildOptimisticFunc  = useCallback(
-    (
-      optimisticOperation,
-      elementActionName
-    ) => {
-      if (optimisticOperation === "insert") {
-        return addRowOptimistically;
-      } else if (optimisticOperation === "update") {
-        return returnUnchangedData;
-        // return editRowOptimistically;
-      } else if (optimisticOperation === "delete") {
-        return returnUnchangedData;
-        // return deleteRowOptimistically;
-      } else if (optimisticOperation === "replaceData") {
-        return returnUnchangedData;
-        // return replaceDataOptimistically;
-      } else {
-        //None of the above, but something was specified
-        if (optimisticOperation) {
-          throw new Error(`
-              Invalid optimistic operation specified in "${elementActionName}" element action.
-              You specified  "${optimisticOperation}" but the allowed values are "addRow", "editRow", "deleteRow", "replaceData" or left blank for no optimistic operation.
-          `);
-        }
-
-        //Nothing specified, function that does not change data (ie no optimistic operation)
-        return returnUnchangedData;
-      }
-    },
-    [addRowOptimistically]
-  );
-
-  return { buildOptimisticFunc, returnUnchangedData, addRowOptimistically };
+  return { returnUnchangedData, addRowOptimistically };
 }

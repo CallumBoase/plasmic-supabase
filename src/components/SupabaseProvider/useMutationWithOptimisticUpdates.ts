@@ -32,8 +32,8 @@ type UseMutationWithOptimisticUpdatesParams = {
   simulateRandomMutationErrors: boolean;
   returnCount?: ReturnCountOptions;
   memoizedOrderBy: OrderBy[];
-  onMutateSuccess: (mutateResult: SupabaseProviderMutateResult) => void;
-  onError: (supabaseProviderError: SupabaseProviderError) => void;
+  memoizedOnMutateSuccess: (mutateResult: SupabaseProviderMutateResult) => void;
+  memoizedOnError: (supabaseProviderError: SupabaseProviderError) => void;
 };
 
 export const useMutationWithOptimisticUpdates = ({
@@ -43,8 +43,8 @@ export const useMutationWithOptimisticUpdates = ({
   simulateRandomMutationErrors,
   returnCount,
   memoizedOrderBy,
-  onMutateSuccess,
-  onError,
+  memoizedOnMutateSuccess,
+  memoizedOnError,
 }: UseMutationWithOptimisticUpdatesParams) => {
 
   // Custom state to track if the component is currently mutating data
@@ -178,8 +178,8 @@ export const useMutationWithOptimisticUpdates = ({
             error: null,
           };
 
-          if (onMutateSuccess) {
-            onMutateSuccess(result);
+          if (memoizedOnMutateSuccess) {
+            memoizedOnMutateSuccess(result);
           }
 
           if (!returnImmediately) {
@@ -194,8 +194,8 @@ export const useMutationWithOptimisticUpdates = ({
             rowForSupabase: dataForSupabase,
           });
 
-          if (onError) {
-            onError(supabaseProviderError);
+          if (memoizedOnError) {
+            memoizedOnError(supabaseProviderError);
           }
 
           if (!returnImmediately) {
