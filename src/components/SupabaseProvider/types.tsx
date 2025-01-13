@@ -14,18 +14,14 @@ export type OptimisticRow = Row & {
 // Type for multiple Supabase rows - an array of objects with key-value pairs
 export type Rows = Row[];
 
+export type MutationTypes = "insert" | "update" | "delete" | "rpc" | "flexibleMutation";
+
 // Custom error object for SupabaseProvider
 export type SupabaseProviderError = {
   errorId: string;
   summary: string;
   errorMessage: string;
-  actionAttempted:
-    | "select"
-    | "insert"
-    | "update"
-    | "delete"
-    | "rpc"
-    | "flexibleMutation";
+  actionAttempted: "select" | MutationTypes;
   rowForSupabase: Row | null;
 };
 
@@ -41,7 +37,8 @@ export type SupabaseProviderFetchResult = {
 // And we include an error object (or null)
 export type SupabaseProviderMutateResult = {
   data: PostgrestResponseSuccess<Rows>["data"] | null;
-  optimisticData: OptimisticRow | null;
+  //optimisticData may be a single row (eg from addRow or editRow) or the entire optimisticData (eg from runRpc or fleixbleMutaiton)
+  optimisticData: OptimisticRow | Rows | null;
   count: PostgrestResponseSuccess<Rows>["count"] | null;
   action: "insert" | "update" | "delete" | "rpc" | "flexibleMutation";
   summary: string;
@@ -50,6 +47,6 @@ export type SupabaseProviderMutateResult = {
 };
 
 // Types of Optimistic operations supported by the SupabaseProvider
-export type OptimisticOperation = "addRow" | "editRow" | "deleteRow" | "replaceData" | null;
+export type OptimisticOperation = "insert" | "update" | "delete" | "replaceData" | null;
 export type ElementActionName = "Add Row" | "Edit Row" | "Delete Row" | "Run RPC" | "Flexible Mutation";
 export type ReturnCountOptions = "none" | "exact" | "planned" | "estimated";

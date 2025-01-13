@@ -23,7 +23,7 @@ import {
 
 //Custom hooks
 import { useSupabaseMutations } from "./useSupabaseMutations";
-import { useOptimisticOperations } from "./useOptimitsicOperations";
+import { useOptimisticOperations } from "./useOptimisticOperations";
 
 //Types
 import type {
@@ -179,7 +179,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
           // Determine the optimistic operation and function to run
           // If no optimisticRow was provided, the optimistic func will be returnUnchangedData, effectively disabling optimistic ops
           let optimisticOperation: OptimisticOperation = optimisticRow
-            ? "addRow"
+            ? "insert"
             : null;
           const optimisticFunc = buildOptimisticFunc(
             optimisticOperation,

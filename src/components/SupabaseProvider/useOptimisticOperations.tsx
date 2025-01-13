@@ -10,10 +10,20 @@ import type {
 } from "./types";
 import type { OrderBy } from "../../utils/buildSupabaseQueryWithDynamicFilters";
 
-type UseOptimisticOperationsProps = {
+export type UseOptimisticOperationsProps = {
   returnCount?: ReturnCountOptions;
   memoizedOrderBy: OrderBy[];
 };
+
+export type OptimisticMutateFunction = (
+  currentData: SupabaseProviderFetchResult | undefined,
+  optimisticRow: OptimisticRow
+) => SupabaseProviderFetchResult;
+
+export type BuildOptimisticFunc = (
+  optimisticOperation: OptimisticOperation,
+  elementActionName: ElementActionName
+) => OptimisticMutateFunction;
 
 export function useOptimisticOperations({
   returnCount,
@@ -22,13 +32,14 @@ export function useOptimisticOperations({
   //Function that just returns the data unchanged
   //To pass in as an optimistic update function when no optimistic update is desired
   //Effectively disabling optimistic updates for the operation
-  function returnUnchangedData(
-    currentData: SupabaseProviderFetchResult | undefined
-  ) {
+  const returnUnchangedData : OptimisticMutateFunction = (
+    currentData,
+    _optimisticRow
+  ) => {
     if (!currentData) {
       return {
         data: null,
-        count: null,
+        count: null
       };
     }
     return currentData;
@@ -37,11 +48,16 @@ export function useOptimisticOperations({
   //Function for optimistic add of a row to existing data
   //Adds a new row to the end of the array
   //This will be sorted automatically by useEffect above
-  const addRowOptimistically = useCallback(
+  const addRowOptimistically: OptimisticMutateFunction = useCallback(
     (
-      currentData: SupabaseProviderFetchResult,
-      optimisticRow: OptimisticRow
+      currentData,
+      optimisticRow
     ) => {
+
+      if(!currentData) {
+        currentData = { data: null, count: null}
+      }
+
       const newData = {
         //Build a new array with existing data (if present) and the new optimistic row
         data: clientSideOrderBy(memoizedOrderBy, [
@@ -57,17 +73,17 @@ export function useOptimisticOperations({
   );
 
   //Helper function to choose the correct optimistic operation function to run
-  const buildOptimisticFunc  = useCallback(
+  const buildOptimisticFunc : BuildOptimisticFunc  = useCallback(
     (
-      optimisticOperation: OptimisticOperation,
-      elementActionName: ElementActionName
+      optimisticOperation,
+      elementActionName
     ) => {
-      if (optimisticOperation === "addRow") {
+      if (optimisticOperation === "insert") {
         return addRowOptimistically;
-      } else if (optimisticOperation === "editRow") {
+      } else if (optimisticOperation === "update") {
         return returnUnchangedData;
         // return editRowOptimistically;
-      } else if (optimisticOperation === "deleteRow") {
+      } else if (optimisticOperation === "delete") {
         return returnUnchangedData;
         // return deleteRowOptimistically;
       } else if (optimisticOperation === "replaceData") {
