@@ -32,9 +32,8 @@ export function useOptimisticOperations({
   //Function that just returns the data unchanged
   //To pass in as an optimistic update function when no optimistic update is desired
   //Effectively disabling optimistic updates for the operation
-  const returnUnchangedData : OptimisticMutateFunction = (
-    currentData,
-    _optimisticRow
+  const returnUnchangedData = (
+    currentData: SupabaseProviderFetchResult | undefined,
   ) => {
     if (!currentData) {
       return {
@@ -48,15 +47,17 @@ export function useOptimisticOperations({
   //Function for optimistic add of a row to existing data
   //Adds a new row to the end of the array
   //This will be sorted automatically by useEffect above
-  const addRowOptimistically: OptimisticMutateFunction = useCallback(
+  const addRowOptimistically = useCallback(
     (
-      currentData,
-      optimisticRow
+      currentData: SupabaseProviderFetchResult | undefined,
+      optimisticRow: OptimisticRow
     ) => {
 
       if(!currentData) {
         currentData = { data: null, count: null}
       }
+
+      // Determine whether we are dealing with
 
       const newData = {
         //Build a new array with existing data (if present) and the new optimistic row
@@ -105,5 +106,5 @@ export function useOptimisticOperations({
     [addRowOptimistically]
   );
 
-  return { buildOptimisticFunc };
+  return { buildOptimisticFunc, returnUnchangedData, addRowOptimistically };
 }

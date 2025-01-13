@@ -10,10 +10,10 @@ import { useDeepCompareMemo } from "use-deep-compare";
 
 //Supabase utility functions (create client)
 // import createClient from "../../utils/supabase/component";
+import { useMutationWithOptimisticUpdates } from "./useMutationWithOptimisticUpdates";
 
 //Custom utility functions
 import { fetchData } from "./fetchData";
-import { handleMutationWithOptimisticUpdates } from "./handleMutateWithOptimisticUpdates";
 
 import {
   type Filter,
@@ -21,8 +21,6 @@ import {
 } from "../../utils/buildSupabaseQueryWithDynamicFilters";
 
 //Custom hooks
-import { useSupabaseMutations } from "./useSupabaseMutations";
-import { useOptimisticOperations } from "./useOptimisticOperations";
 
 //Types
 import type {
@@ -88,8 +86,6 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
     },
     ref
   ) {
-    // Custom state to track if the component is currently mutating data
-    const [isMutating, setIsMutating] = useState<boolean>(false);
 
     // Custom state to track any fetch errors
     const [errorFromFetch, setErrorFromFetch] =
@@ -99,19 +95,19 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
     const memoizedFilters = useDeepCompareMemo(() => filters, [filters]);
     const memoizedOrderBy = useDeepCompareMemo(() => orderBy, [orderBy]);
 
-    // Get the mutator functions from our custom useSupabaseMutations hook
-    const { addRowMutator } = useSupabaseMutations({
+    const { 
+      handleMutation,
+      isMutating,
+      setIsMutating
+    } = useMutationWithOptimisticUpdates({
       tableName,
       columns,
       addDelayForTesting,
       simulateRandomMutationErrors,
-    });
-
-    // Get the buildOptimisticFunc function from our custom useOptimisticOperations hook
-    // This function can be run to return the correct optimistic function to run during mutation
-    const { buildOptimisticFunc } = useOptimisticOperations({
       returnCount,
       memoizedOrderBy,
+      onMutateSuccess,
+      onError,
     });
 
     // Build the fetch data function with the current parameters
@@ -170,21 +166,14 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
           returnImmediately,
           optimisticRow
       ): Promise<SupabaseProviderFetchResult> => {
-
-        return handleMutationWithOptimisticUpdates({
+        return handleMutation({
           operation: "insert",
           dataForSupabase: rowForSupabase,
           shouldReturnRow,
           returnImmediately,
           optimisticRow,
-          mutateFromUseMutablePlasmicQueryData: mutate,
-          mutatorFunction: addRowMutator,
-          buildOptimisticFunc,
-          setIsMutating,
-          onMutateSuccess,
-          onError
+          mutate
         })
-
       },
 
       // refetchRows element action
