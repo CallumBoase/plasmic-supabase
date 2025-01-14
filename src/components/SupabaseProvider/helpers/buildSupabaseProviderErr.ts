@@ -7,17 +7,17 @@ type BuildSupabaseProviderErrorParams = {
   error: any;
   operation: SupabaseProviderError["actionAttempted"];
   summary: string;
-  rowForSupabase?: SupabaseProviderError["rowForSupabase"];
+  optimisticData?: SupabaseProviderError["optimisticData"];
 };
 
 type BuildSupabaseProviderError = (params: BuildSupabaseProviderErrorParams) => SupabaseProviderError;
 
-export const buildSupabaseProviderError : BuildSupabaseProviderError = ({error, operation, summary, rowForSupabase}) => {
+export const buildSupabaseProviderError : BuildSupabaseProviderError = ({error, operation, summary, optimisticData}) => {
   return {
     errorId: uuid(),
     summary,
     errorMessage: getErrMsg(error),
     actionAttempted: operation,
-    rowForSupabase: rowForSupabase ? rowForSupabase : null,
+    optimisticData: optimisticData ? optimisticData : null,
   };
 }
