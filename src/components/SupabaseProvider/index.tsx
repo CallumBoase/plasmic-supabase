@@ -38,6 +38,12 @@ interface Actions {
     returnImmediately: boolean,
     optimisticRow?: Row
   ): Promise<SupabaseProviderFetchResult>;
+  editRow(
+    rowForSupabase: Row,
+    shouldReturnRow: boolean,
+    returnImmediately: boolean,
+    optimisticRow?: Row
+  ): Promise<SupabaseProviderFetchResult>;
   refetchRows(): Promise<void>;
 }
 
@@ -53,6 +59,7 @@ export interface SupabaseProviderProps {
   limit?: number;
   offset?: number;
   returnCount?: ReturnCountOptions;
+  uniqueIdentifierField: string;
   onError: (supabaseProviderError: SupabaseProviderError) => void;
   onMutateSuccess: (mutateResult: SupabaseProviderMutateResult) => void;
   skipServerSidePrefetch: boolean;
@@ -75,6 +82,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
       limit,
       offset,
       returnCount,
+      uniqueIdentifierField,
       onError,
       onMutateSuccess,
       skipServerSidePrefetch,
@@ -84,7 +92,6 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
     },
     ref
   ) {
-
     // Custom state to track any fetch errors
     const [errorFromFetch, setErrorFromFetch] =
       useState<SupabaseProviderError | null>(null);
@@ -93,22 +100,22 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
     const memoizedFilters = useDeepCompareMemo(() => filters, [filters]);
     const memoizedOrderBy = useDeepCompareMemo(() => orderBy, [orderBy]);
     const memoizedOnError = useDeepCompareCallback(onError, [onError]);
-    const memoizedOnMutateSuccess = useDeepCompareCallback(onMutateSuccess, [onMutateSuccess]);
+    const memoizedOnMutateSuccess = useDeepCompareCallback(onMutateSuccess, [
+      onMutateSuccess,
+    ]);
 
-    const { 
-      handleMutation,
-      isMutating,
-      setIsMutating
-    } = useMutationWithOptimisticUpdates({
-      tableName,
-      columns,
-      addDelayForTesting,
-      simulateRandomMutationErrors,
-      returnCount,
-      memoizedOrderBy,
-      memoizedOnMutateSuccess,
-      memoizedOnError,
-    });
+    const { handleMutation, isMutating, setIsMutating } =
+      useMutationWithOptimisticUpdates({
+        tableName,
+        columns,
+        addDelayForTesting,
+        simulateRandomMutationErrors,
+        returnCount,
+        uniqueIdentifierField,
+        memoizedOrderBy,
+        memoizedOnMutateSuccess,
+        memoizedOnError,
+      });
 
     // Build the fetch data function with the current parameters
     const fetcher = async () => {
@@ -159,12 +166,11 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
 
     // Element actions exposed to run in Plasmic Studio
     useImperativeHandle(ref, () => ({
-
       addRow: async (
-          rowForSupabase,
-          shouldReturnRow,
-          returnImmediately,
-          optimisticRow
+        rowForSupabase,
+        shouldReturnRow,
+        returnImmediately,
+        optimisticRow
       ): Promise<SupabaseProviderFetchResult> => {
         return handleMutation({
           operation: "insert",
@@ -172,8 +178,24 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
           shouldReturnRow,
           returnImmediately,
           optimisticRow,
-          mutate
-        })
+          mutate,
+        });
+      },
+
+      editRow: async (
+        rowForSupabase,
+        shouldReturnRow,
+        returnImmediately,
+        optimisticRow
+      ): Promise<SupabaseProviderFetchResult> => {
+        return handleMutation({
+          operation: "update",
+          dataForSupabase: rowForSupabase,
+          shouldReturnRow,
+          returnImmediately,
+          optimisticRow,
+          mutate,
+        });
       },
 
       // refetchRows element action

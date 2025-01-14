@@ -1,39 +1,77 @@
 import { useCallback } from "react";
 import createClient from "../../../utils/supabase/component";
+import buildSupabaseQueryWithDynamicFilters from "./buildSupabaseQueryWithDynamicFilters";
 
 type MutationDependencies = {
   tableName: string;
   columns: string;
+  uniqueIdentifierField: string;
   addDelayForTesting: boolean;
   simulateRandomMutationErrors: boolean;
-}
+};
 
-import type { SupabaseProviderFetchResult, Row } from "../types";
+import type { SupabaseProviderFetchResult, Row, MutationTypes } from "../types";
 
 export function useSupabaseMutations(dependencies: MutationDependencies) {
-
   const {
     tableName,
     columns,
+    uniqueIdentifierField,
     addDelayForTesting,
     simulateRandomMutationErrors,
   } = dependencies;
 
-  // Function to add a row in Supabase
-  const addRowMutator = useCallback(
-    async (
-      rowForSupabase: Row,
-      shouldReturnRow: boolean
-    ): Promise<SupabaseProviderFetchResult> => {
+  // Function to build a simple insert / update / delete mutator function
+  const buildStandardMutator = useCallback(
+    async ({
+      mutationType,
+      rowForSupabase,
+      runSelectAfterMutate,
+    }: {
+      mutationType: MutationTypes;
+      rowForSupabase: Row;
+      runSelectAfterMutate: boolean;
+    }): Promise<SupabaseProviderFetchResult> => {
       // Build the supabase query to insert the row with optional return of the new row
       const supabase = createClient();
 
-      let query = supabase.from(tableName).insert(rowForSupabase);
-
-      if (shouldReturnRow) {
-        //@ts-ignore - Typescript doesn't like the dynamic query with select but we know it's OK
-        query = query.select(columns);
+      // Choose the operation for the query
+      let operation;
+      if (
+        mutationType === "insert" ||
+        mutationType === "update" ||
+        mutationType === "delete"
+      ) {
+        operation = mutationType;
+      } else {
+        throw new Error(
+          "Invalid operation type in useSupabaseMutatoins.buildStandardMutator. Use the advanced mutator function instead"
+        );
       }
+
+      const query = buildSupabaseQueryWithDynamicFilters({
+        supabase,
+        tableName,
+        operation: operation,
+        columns,
+        dataForSupabase: rowForSupabase,
+        filters:
+          operation === "insert"
+            ? undefined
+            : [
+                {
+                  fieldName: uniqueIdentifierField,
+                  operator: "eq",
+                  value: rowForSupabase[uniqueIdentifierField],
+                  value2: undefined
+                },
+              ],
+        orderBy: null,
+        limit: undefined,
+        offset: undefined,
+        returnCount: "none",
+        runSelectAfterMutate,
+      });
 
       // Add delay for testing when indicated
       if (addDelayForTesting)
@@ -62,6 +100,39 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
     [tableName, columns, addDelayForTesting, simulateRandomMutationErrors]
   );
 
-  return { addRowMutator };
+  const addRowMutator = useCallback(
+    async ({
+      dataForSupabase: rowForSupabase,
+      shouldReturnRow,
+    }: {
+      dataForSupabase: Row;
+      shouldReturnRow: boolean;
+    }) => {
+      return buildStandardMutator({
+        mutationType: "insert",
+        rowForSupabase,
+        runSelectAfterMutate: shouldReturnRow,
+      });
+    },
+    [buildStandardMutator]
+  );
 
+  const editRowMutator = useCallback(
+    async ({
+      dataForSupabase: rowForSupabase,
+      shouldReturnRow,
+    }: {
+      dataForSupabase: Row;
+      shouldReturnRow: boolean;
+    }) => {
+      return buildStandardMutator({
+        mutationType: "update",
+        rowForSupabase,
+        runSelectAfterMutate: shouldReturnRow,
+      });
+    },
+    [buildStandardMutator]
+  );
+
+  return { addRowMutator, editRowMutator };
 }

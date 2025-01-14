@@ -182,6 +182,11 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
       description: 'Count algorithm to use to count rows in the table or view. `"none"`: Don\'t return a count. `"exact"`: Exact but slow count algorithm. Performs a `COUNT(*)` under the hood. `"planned"`: Approximated but fast count algorithm. Uses the Postgres statistics under the hood. `"estimated"`: Uses exact count for low numbers and planned count for high numbers.',
       advanced: true,
     },
+    uniqueIdentifierField: {
+      type: "string",
+      required: true,
+      defaultValue: "id"
+    },
     onError: {
       type: "eventHandler",
       argTypes: [{name: 'supabaseProviderError', type: 'object'}],
@@ -238,6 +243,15 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
         { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
         { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
         { name: "optimisticRow", type: "object", displayName: "Optimistic new row object (optional)" },
+      ],
+    },
+    editRow: {
+      description: "Edit a row in the database",
+      argTypes: [
+        { name: "rowForSupabase", type: "object", displayName: "Edited row object to send to Supabase. Must include the unique identifier field (eg id)" },
+        { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
+        { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
+        { name: "optimisticRow", type: "object", displayName: "Optimistic edited row object (optional). Must include the unqiue identifier field (eg id)" },
       ],
     },
     refetchRows: {

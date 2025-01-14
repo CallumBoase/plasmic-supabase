@@ -1,6 +1,6 @@
 // useMutationWithOptimisticUpdates.ts
 
-import { useState } from 'react';
+import { useState } from "react";
 import { v4 as uuid } from "uuid";
 import { buildSupabaseProviderError } from "./buildSupabaseProviderErr";
 import { getOperationPhrases } from "./getOperationPhrases";
@@ -21,9 +21,7 @@ import type {
   ReturnCountOptions,
 } from "../types";
 
-import {
-  type OrderBy,
-} from "./buildSupabaseQueryWithDynamicFilters";
+import { type OrderBy } from "./buildSupabaseQueryWithDynamicFilters";
 
 type UseMutationWithOptimisticUpdatesParams = {
   tableName: string;
@@ -32,6 +30,7 @@ type UseMutationWithOptimisticUpdatesParams = {
   simulateRandomMutationErrors: boolean;
   returnCount?: ReturnCountOptions;
   memoizedOrderBy: OrderBy[];
+  uniqueIdentifierField: string;
   memoizedOnMutateSuccess: (mutateResult: SupabaseProviderMutateResult) => void;
   memoizedOnError: (supabaseProviderError: SupabaseProviderError) => void;
 };
@@ -42,28 +41,31 @@ export const useMutationWithOptimisticUpdates = ({
   addDelayForTesting,
   simulateRandomMutationErrors,
   returnCount,
+  uniqueIdentifierField,
   memoizedOrderBy,
   memoizedOnMutateSuccess,
   memoizedOnError,
 }: UseMutationWithOptimisticUpdatesParams) => {
-
   // Custom state to track if the component is currently mutating data
   const [isMutating, setIsMutating] = useState<boolean>(false);
 
   // Build the mutator functions based on dependencies from our custom useSupabaseMutations hook
-  const { addRowMutator } = useSupabaseMutations({
+  const { addRowMutator, editRowMutator } = useSupabaseMutations({
     tableName,
     columns,
+    uniqueIdentifierField,
     addDelayForTesting,
     simulateRandomMutationErrors,
   });
 
   // Get the buildOptimisticFunc function from our custom useOptimisticOperations hook
   // This function can be run to return the correct optimistic function to run during mutation
-  const { addRowOptimistically, returnUnchangedData } = useOptimisticOperations({
-    returnCount,
-    memoizedOrderBy,
-  });
+  const { addRowOptimistically, returnUnchangedData, editRowOptimistically } =
+    useOptimisticOperations({
+      returnCount,
+      uniqueIdentifierField,
+      memoizedOrderBy,
+    });
 
   // Function that can handle all types of mutations (addRow, editRow, deleteRow, runRpc, flexibleMutation)
   // It can be run with various settings:
@@ -109,7 +111,7 @@ export const useMutationWithOptimisticUpdates = ({
 
       //If we have an optimisticRow, add the optimisticId and isOptimistic properties
       //Leave optimisticData as is
-      let optimisticRowFinal : OptimisticRow | undefined;
+      let optimisticRowFinal: OptimisticRow | undefined;
       if (optimisticRow) {
         optimisticRowFinal = {
           ...optimisticRow,
@@ -139,10 +141,17 @@ export const useMutationWithOptimisticUpdates = ({
       let mutatorFunction;
       let optimisticFunc;
       switch (operation) {
-
         case "insert":
           mutatorFunction = addRowMutator;
-          optimisticFunc = optimisticRowFinal ? addRowOptimistically : returnUnchangedData;
+          optimisticFunc = optimisticRowFinal
+            ? addRowOptimistically
+            : returnUnchangedData;
+          break;
+        case "update":
+          mutatorFunction = editRowMutator;
+          optimisticFunc = optimisticRowFinal
+            ? editRowOptimistically
+            : returnUnchangedData;
           break;
         default:
           throw new Error(
@@ -151,7 +160,7 @@ export const useMutationWithOptimisticUpdates = ({
       }
 
       // Run the mutation
-      mutate(mutatorFunction(dataForSupabase, shouldReturnRow), {
+      mutate(mutatorFunction({ dataForSupabase, shouldReturnRow }), {
         optimisticData: (currentData) =>
           optimisticFunc(
             currentData,
@@ -160,7 +169,9 @@ export const useMutationWithOptimisticUpdates = ({
             //Logic previously in the component ensures that only the correct optimistic data exists
             //And that the presence or absense of optimistic data has lead to the correct optimistic function being selected
             //Including lack of any optimistic data leading to the returnUnchangedData function
-            optimisticRowFinal as OptimisticRow || optimisticData as Rows || undefined
+            (optimisticRowFinal as OptimisticRow) ||
+              (optimisticData as Rows) ||
+              undefined
           ),
         populateCache: false,
         revalidate: true,
