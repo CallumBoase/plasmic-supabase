@@ -102,7 +102,7 @@ export const fetchDataFromSupabase = async ({
     const supabaseProviderError = buildSupabaseProviderError({
       error: err,
       operation: "select",
-      summary: "Error fetching records",
+      summary: "Error fetching records"
     });
     setErrorFromFetch(supabaseProviderError);
     if (memoizedOnError && typeof memoizedOnError === "function") {

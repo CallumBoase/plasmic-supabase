@@ -25,9 +25,8 @@ export type SupabaseProviderError = {
   summary: string;
   errorMessage: string;
   actionAttempted: "select" | MutationTypes;
-  //OptimisticData is the unmodified original data that was passed to the Element Action by the user
-  //Notably, it's NOT OptimisticRow (which the SupabaseProvider modifies by adding optimisticId and isOptimistic)
-  optimisticData: Row | Rows | null;
+  dataForSupabase: Row | Rows | null;
+  optimisticData: OptimisticRow | Rows | null;
 };
 
 // Type for the response from a fetch of data from Supabase

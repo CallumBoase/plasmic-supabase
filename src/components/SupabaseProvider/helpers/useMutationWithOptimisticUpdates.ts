@@ -191,7 +191,8 @@ export const useMutationWithOptimisticUpdates = ({
             error: err,
             operation: operation,
             summary: operationPhrases.error,
-            optimisticData: dataForSupabase,
+            dataForSupabase,
+            optimisticData: optimisticRowFinal || optimisticData || null,
           });
 
           if (memoizedOnError) {
