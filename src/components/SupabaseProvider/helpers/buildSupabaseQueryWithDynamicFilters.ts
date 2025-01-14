@@ -8,7 +8,7 @@ import {
   type SupabaseJsFilterOperator_oneArg,
   type SupabaseJsFilterOperator_twoArg,
   type SupabaseJsFilterOperator_threeArg,
-} from "../types/supabase-js-filter-ops";
+} from "../../../types/supabase-js-filter-ops";
 
 export type Filter = {
   fieldName: any;

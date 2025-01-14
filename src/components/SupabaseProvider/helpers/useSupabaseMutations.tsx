@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import createClient from "../../utils/supabase/component";
+import createClient from "../../../utils/supabase/component";
 
 type MutationDependencies = {
   tableName: string;
@@ -8,7 +8,7 @@ type MutationDependencies = {
   simulateRandomMutationErrors: boolean;
 }
 
-import type { SupabaseProviderFetchResult, Row } from "./types";
+import type { SupabaseProviderFetchResult, Row } from "../types";
 
 export function useSupabaseMutations(dependencies: MutationDependencies) {
 

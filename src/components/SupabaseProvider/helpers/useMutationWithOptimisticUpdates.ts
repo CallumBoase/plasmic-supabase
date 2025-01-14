@@ -19,11 +19,11 @@ import type {
   MutationTypes,
   OptimisticRow,
   ReturnCountOptions,
-} from "./types";
+} from "../types";
 
 import {
   type OrderBy,
-} from "../../utils/buildSupabaseQueryWithDynamicFilters";
+} from "./buildSupabaseQueryWithDynamicFilters";
 
 type UseMutationWithOptimisticUpdatesParams = {
   tableName: string;

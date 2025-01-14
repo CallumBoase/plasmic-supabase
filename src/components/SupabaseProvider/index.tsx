@@ -10,15 +10,15 @@ import { useDeepCompareMemo, useDeepCompareCallback } from "use-deep-compare";
 
 //Supabase utility functions (create client)
 // import createClient from "../../utils/supabase/component";
-import { useMutationWithOptimisticUpdates } from "./useMutationWithOptimisticUpdates";
+import { useMutationWithOptimisticUpdates } from "./helpers/useMutationWithOptimisticUpdates";
 
 //Custom utility functions
-import { fetchData } from "./fetchData";
+import { fetchDataFromSupabase } from "./helpers/fetchDataFromSupabase";
 
 import {
   type Filter,
   type OrderBy,
-} from "../../utils/buildSupabaseQueryWithDynamicFilters";
+} from "./helpers/buildSupabaseQueryWithDynamicFilters";
 
 //Custom hooks
 
@@ -114,7 +114,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
 
     // Build the fetch data function with the current parameters
     const fetcher = async () => {
-      return fetchData({
+      return fetchDataFromSupabase({
         skipServerSidePrefetch,
         tableName,
         columns,

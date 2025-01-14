@@ -1,7 +1,7 @@
 import { v4 as uuid } from "uuid";
-import getErrMsg from "../../utils/getErrMsg";
+import getErrMsg from "../../../utils/getErrMsg";
 
-import type { SupabaseProviderError } from "./types";
+import type { SupabaseProviderError } from "../types";
 
 type BuildSupabaseProviderErrorParams = {
   error: any;

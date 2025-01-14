@@ -1,12 +1,12 @@
 // useOptimisticOperations.ts
 import { useCallback } from "react";
-import clientSideOrderBy from "../../utils/clientSideOrderBy";
+import clientSideOrderBy from "./clientSideOrderBy";
 import type {
   SupabaseProviderFetchResult,
   OptimisticRow,
   ReturnCountOptions
-} from "./types";
-import type { OrderBy } from "../../utils/buildSupabaseQueryWithDynamicFilters";
+} from "../types";
+import type { OrderBy } from "./buildSupabaseQueryWithDynamicFilters";
 
 export type UseOptimisticOperationsProps = {
   returnCount?: ReturnCountOptions;

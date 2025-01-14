@@ -1,4 +1,4 @@
-import type { Row, Rows, MutationTypes, OptimisticOperation } from "./types";
+import type { Row, Rows, MutationTypes, OptimisticOperation } from "../types";
 
 export type GetOptimisticOperation = (
   operation: MutationTypes,

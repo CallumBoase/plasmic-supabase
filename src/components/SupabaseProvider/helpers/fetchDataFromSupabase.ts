@@ -1,17 +1,17 @@
-import createClient from "../../utils/supabase/component";
-import serverSide from "../../utils/serverSide";
+import createClient from "../../../utils/supabase/component";
+import serverSide from "../../../utils/serverSide";
 import { buildSupabaseProviderError } from "./buildSupabaseProviderErr";
 
 import type {
   SupabaseProviderError,
   SupabaseProviderFetchResult,
   ReturnCountOptions,
-} from "./types";
+} from "../types";
 
 import buildSupabaseQueryWithDynamicFilters, {
   type Filter,
   type OrderBy,
-} from "../../utils/buildSupabaseQueryWithDynamicFilters";
+} from "./buildSupabaseQueryWithDynamicFilters";
 
 type FetchDataParams = {
   skipServerSidePrefetch: boolean;
@@ -31,7 +31,7 @@ type FetchDataParams = {
 
 // Function to fetch rows from Supabase
 // This is called by the useMutablePlasmicQueryData hook each time data needs to be fetched
-export const fetchData = async ({
+export const fetchDataFromSupabase = async ({
   skipServerSidePrefetch,
   tableName,
   columns,

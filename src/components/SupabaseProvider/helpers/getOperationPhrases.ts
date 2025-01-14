@@ -1,4 +1,4 @@
-import type { MutationTypes, ElementActionName } from "./types";
+import type { MutationTypes, ElementActionName } from "../types";
 
 export type GetOperationPhrases = (operation: MutationTypes) => {
   elementActionName: ElementActionName;

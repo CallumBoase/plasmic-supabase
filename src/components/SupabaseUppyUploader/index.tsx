@@ -24,7 +24,7 @@ const Dashboard = React.lazy(() => import("@uppy/react").then((module) => ({ def
 //https://stackoverflow.com/questions/58791636/can-you-deconstruct-lazily-loaded-react-components
 
 //General utils
-import getBearerTokenForSupabase from "../../utils/getBearerTokenForSupabase";
+import getBearerTokenForSupabase from "./helpers/getBearerTokenForSupabase";
 import { v4 as uuid } from "uuid";
 
 //Component-specific utils
