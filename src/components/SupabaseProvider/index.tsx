@@ -20,8 +20,6 @@ import {
   type OrderBy,
 } from "./helpers/buildSupabaseQueryWithDynamicFilters";
 
-//Custom hooks
-
 //Types
 import type {
   Row,
