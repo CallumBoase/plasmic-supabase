@@ -93,6 +93,7 @@ export const useMutationWithOptimisticUpdates = ({
     optimisticRow,
     optimisticData,
     optimisticCount,
+    customMetadata,
     mutate,
     flexibleMutationSettings,
   }: {
@@ -103,6 +104,7 @@ export const useMutationWithOptimisticUpdates = ({
     optimisticRow?: Row;
     optimisticData?: Row | Rows;
     optimisticCount?: number;
+    customMetadata: Object | undefined;
     mutate: KeyedMutator<SupabaseProviderFetchResult>;
     flexibleMutationSettings?: {
       tableName: string;
@@ -179,6 +181,7 @@ export const useMutationWithOptimisticUpdates = ({
           summary: mutationPhrases.inProgress,
           status: "pending",
           error: null,
+          customMetadata
         };
         resolve(result);
       }
@@ -272,6 +275,7 @@ export const useMutationWithOptimisticUpdates = ({
             summary: mutationPhrases.success,
             status: "success",
             error: null,
+            customMetadata
           };
 
           if (memoizedOnMutateSuccess) {
@@ -289,6 +293,7 @@ export const useMutationWithOptimisticUpdates = ({
             summary: mutationPhrases.error,
             dataForSupabase,
             optimisticData: optimisticRowFinal || optimisticDataFinal || null,
+            customMetadata,
           });
 
           if (memoizedOnError) {
@@ -306,6 +311,7 @@ export const useMutationWithOptimisticUpdates = ({
               summary: mutationPhrases.error,
               status: "error",
               error: supabaseProviderError,
+              customMetadata
             };
             resolve(result);
           }

@@ -39,19 +39,22 @@ interface Actions {
     rowForSupabase: Row,
     shouldReturnRow: boolean,
     returnImmediately: boolean,
-    optimisticRow?: Row
+    optimisticRow?: Row,
+    customMetadata?: Object
   ): Promise<SupabaseProviderFetchResult>;
   editRow(
     rowForSupabase: Row,
     shouldReturnRow: boolean,
     returnImmediately: boolean,
-    optimisticRow?: Row
+    optimisticRow?: Row,
+    customMetadata?: Object
   ): Promise<SupabaseProviderFetchResult>;
   deleteRow(
     uniqueIdentifierVal: string,
     shouldReturnRow: boolean,
     returnImmediately: boolean,
-    shouldRunOptimistically: boolean
+    shouldRunOptimistically: boolean,
+    customMetadata?: Object
   ): Promise<SupabaseProviderFetchResult>;
   flexibleMutation(
     tableName: string,
@@ -62,6 +65,8 @@ interface Actions {
     returnImmediately: boolean,
     optimisticOperation: OptimisticOperation | undefined,
     optimisticData: Row | Rows | undefined,
+    optimisticCount: number | undefined,
+    customMetadata?: Object
   ): Promise<SupabaseProviderFetchResult>;
   refetchRows(): Promise<void>;
 }
@@ -189,7 +194,8 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         rowForSupabase,
         shouldReturnRow,
         returnImmediately,
-        optimisticRow
+        optimisticRow,
+        customMetadata
       ): Promise<SupabaseProviderFetchResult> => {
         return handleMutation({
           mutationType: "insert",
@@ -197,6 +203,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
           shouldReturnRow,
           returnImmediately,
           optimisticRow,
+          customMetadata,
           mutate,
         });
       },
@@ -205,7 +212,8 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         rowForSupabase,
         shouldReturnRow,
         returnImmediately,
-        optimisticRow
+        optimisticRow,
+        customMetadata
       ): Promise<SupabaseProviderFetchResult> => {
         return handleMutation({
           mutationType: "update",
@@ -213,6 +221,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
           shouldReturnRow,
           returnImmediately,
           optimisticRow,
+          customMetadata,
           mutate,
         });
       },
@@ -221,7 +230,8 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         uniqueIdentifierVal,
         shouldReturnRow,
         returnImmediately,
-        shouldRunOptimistically
+        shouldRunOptimistically,
+        customMetadata
       ): Promise<SupabaseProviderFetchResult> => {
 
         return handleMutation({
@@ -237,6 +247,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
           optimisticRow: shouldRunOptimistically
             ? { [uniqueIdentifierField]: uniqueIdentifierVal }
             : undefined,
+          customMetadata,
           mutate,
         });
 
@@ -251,6 +262,8 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         returnImmediately,
         optimisticOperation,
         optimisticData,
+        optimisticCount,
+        customMetadata,
       ): Promise<SupabaseProviderFetchResult> => {
 
         return handleMutation({
@@ -259,6 +272,8 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
           shouldReturnRow,
           returnImmediately,
           optimisticData,
+          optimisticCount,
+          customMetadata,
           mutate,
           flexibleMutationSettings: {
             tableName,

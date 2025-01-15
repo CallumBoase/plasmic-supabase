@@ -9,6 +9,7 @@ type BuildSupabaseProviderErrorParams = {
   summary: string;
   dataForSupabase?: SupabaseProviderError["dataForSupabase"];
   optimisticData?: SupabaseProviderError["optimisticData"];
+  customMetadata: SupabaseProviderError["customMetadata"];
 };
 
 type BuildSupabaseProviderError = (
@@ -21,6 +22,7 @@ export const buildSupabaseProviderError: BuildSupabaseProviderError = ({
   summary,
   dataForSupabase,
   optimisticData,
+  customMetadata
 }) => {
   return {
     errorId: uuid(),
@@ -29,5 +31,6 @@ export const buildSupabaseProviderError: BuildSupabaseProviderError = ({
     actionAttempted,
     dataForSupabase: dataForSupabase ? dataForSupabase : null,
     optimisticData: optimisticData ? optimisticData : null,
+    customMetadata
   };
 };

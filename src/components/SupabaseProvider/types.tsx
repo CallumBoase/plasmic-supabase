@@ -28,6 +28,7 @@ export type SupabaseProviderError = {
   actionAttempted: "select" | MutationTypes;
   dataForSupabase: Row | Rows | null;
   optimisticData: OptimisticRow | Rows | null;
+  customMetadata: Object | undefined;
 };
 
 // Type for the response from a fetch of data from Supabase
@@ -54,4 +55,5 @@ export type SupabaseProviderMutateResult = {
   summary: string;
   status: "success" | "error" | "pending";
   error: SupabaseProviderError | null;
+  customMetadata: Object | undefined;
 };

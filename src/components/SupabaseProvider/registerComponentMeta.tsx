@@ -243,6 +243,7 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
         { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
         { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
         { name: "optimisticRow", type: "object", displayName: "Optimistic new row object (optional)" },
+        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to pass to onMutateSuccess and onError (optional)" },
       ],
     },
     editRow: {
@@ -252,6 +253,7 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
         { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
         { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
         { name: "optimisticRow", type: "object", displayName: "Optimistic edited row object (optional). Must include the unqiue identifier field (eg id)" },
+        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to pass to onMutateSuccess and onError (optional)" },
       ],
     },
     deleteRow: {
@@ -261,6 +263,7 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
         { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
         { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
         { name: "shouldRunOptimistically", type: "boolean", displayName: "Delete row optimistically?" },
+        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to pass to onMutateSuccess and onError (optional)" },
       ],
     },
     flexibleMutation: {
@@ -269,6 +272,7 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
         { name: "tableName", type: "string", displayName: "Table name (to run mutation on)"},
         { name: "operation", type: "string", displayName: "Operation to run in the database (insert / update / upsert / delete)" },
         { name: "dataForSupabase", type: "object", displayName: "Data for Supabase API call (leave blank for delete)" },
+        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to pass to onMutateSuccess and onError (optional)" },
         { 
           name: "filters", 
           type: "object", 
@@ -282,6 +286,8 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
           displayName: "Optimistic operation (addRow / editRow / deleteRow / replaceData) (optional)",
         },
         { name: "optimisticData", type: "object", displayName: "Data for optimistic operation  (if doing). For addRow / editRow / deleteRow: must be an object. For editRow / deleteRow the unique identifier field must be present. For replaceData must be array of objects." },
+        { name: "optimisticCount", type: "number", displayName: "Optimistic count value (optional, if doing replaceData optimistic operation)" },
+        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to pass to onMutateSuccess and onError (optional)" },
       ],
     },
     refetchRows: {
