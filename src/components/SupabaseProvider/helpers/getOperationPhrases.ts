@@ -1,13 +1,13 @@
 import type { MutationTypes, ElementActionName } from "../types";
 
-export type GetOperationPhrases = (operation: MutationTypes) => {
+export type GetMutationPhrases = (operation: MutationTypes) => {
   elementActionName: ElementActionName;
   inProgress: string;
   success: string;
   error: string;
 };
 
-export const getOperationPhrases: GetOperationPhrases = (operation: MutationTypes) => {
+export const getMutationPhrases: GetMutationPhrases = (operation: MutationTypes) => {
   switch (operation) {
     case "insert":
       return {

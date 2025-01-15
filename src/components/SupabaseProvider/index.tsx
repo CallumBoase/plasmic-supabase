@@ -10,7 +10,7 @@ import { useDeepCompareMemo, useDeepCompareCallback } from "use-deep-compare";
 
 //Supabase utility functions (create client)
 // import createClient from "../../utils/supabase/component";
-import { useMutationWithOptimisticUpdates } from "./helpers/useMutationWithOptimisticUpdates";
+import { useMutationWithOptimisticUpdates } from "./customHooks/useMutationWithOptimisticUpdates";
 
 //Custom utility functions
 import { fetchDataFromSupabase } from "./helpers/fetchDataFromSupabase";
@@ -23,7 +23,10 @@ import {
 //Types
 import type {
   Row,
+  Rows,
+  OptimisticOperation,
   SupabaseProviderError,
+  FlexibleMutationOperations,
   SupabaseProviderFetchResult,
   SupabaseProviderMutateResult,
   ReturnCountOptions,
@@ -49,6 +52,16 @@ interface Actions {
     shouldReturnRow: boolean,
     returnImmediately: boolean,
     shouldRunOptimistically: boolean
+  ): Promise<SupabaseProviderFetchResult>;
+  flexibleMutation(
+    tableName: string,
+    operation: FlexibleMutationOperations,
+    dataForSupabase: Row | Rows | undefined,
+    filters: Filter[] | undefined,
+    shouldReturnRow: boolean,
+    returnImmediately: boolean,
+    optimisticOperation: OptimisticOperation | undefined,
+    optimisticData: Row | Rows | undefined,
   ): Promise<SupabaseProviderFetchResult>;
   refetchRows(): Promise<void>;
 }
@@ -179,7 +192,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         optimisticRow
       ): Promise<SupabaseProviderFetchResult> => {
         return handleMutation({
-          operation: "insert",
+          mutationType: "insert",
           dataForSupabase: rowForSupabase,
           shouldReturnRow,
           returnImmediately,
@@ -195,7 +208,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         optimisticRow
       ): Promise<SupabaseProviderFetchResult> => {
         return handleMutation({
-          operation: "update",
+          mutationType: "update",
           dataForSupabase: rowForSupabase,
           shouldReturnRow,
           returnImmediately,
@@ -212,9 +225,10 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
       ): Promise<SupabaseProviderFetchResult> => {
 
         return handleMutation({
-          operation: "delete",
+          mutationType: "delete",
           // Build an object with the unique identifier field and it's value to match normal Row object
-          dataForSupabase: { [uniqueIdentifierField]: uniqueIdentifierVal },
+          // If no uniqueIdentifierVal is provided, then pass undefined so that error handling catches it later
+          dataForSupabase: uniqueIdentifierVal ? { [uniqueIdentifierField]: uniqueIdentifierVal } : undefined,
           shouldReturnRow,
           returnImmediately,
           // Build an optimistic row object with the unique identifier field and it's value
@@ -227,6 +241,34 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         });
 
       },
+
+      flexibleMutation: async (
+        tableName,
+        operation,
+        dataForSupabase,
+        filters,
+        shouldReturnRow,
+        returnImmediately,
+        optimisticOperation,
+        optimisticData,
+      ): Promise<SupabaseProviderFetchResult> => {
+
+        return handleMutation({
+          mutationType: 'flexibleMutation',
+          dataForSupabase: dataForSupabase,
+          shouldReturnRow,
+          returnImmediately,
+          optimisticData,
+          mutate,
+          flexibleMutationSettings: {
+            tableName,
+            operation,
+            filters,
+            optimisticOperation,
+          }
+        });
+      },
+
 
       // refetchRows element action
       refetchRows: async () => {

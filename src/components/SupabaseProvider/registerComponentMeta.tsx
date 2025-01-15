@@ -255,12 +255,33 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
       ],
     },
     deleteRow: {
-      description: "Dlete a row frp, the database",
+      description: "Delete a row from the database",
       argTypes: [
         { name: "uniqueIdentifierVal", type: "string", displayName: "Id / unique identifier of the row to delete" },
         { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
         { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
         { name: "shouldRunOptimistically", type: "boolean", displayName: "Delete row optimistically?" },
+      ],
+    },
+    flexibleMutation: {
+      description: "Perform a flexible mutation in the database",
+      argTypes: [
+        { name: "tableName", type: "string", displayName: "Table name (to run mutation on)"},
+        { name: "operation", type: "string", displayName: "Operation to run in the database (insert / update / upsert / delete)" },
+        { name: "dataForSupabase", type: "object", displayName: "Data for Supabase API call (leave blank for delete)" },
+        { 
+          name: "filters", 
+          type: "object", 
+          displayName: "Filters for update/delete (array of objects eg {fieldName: 'id', operator: 'eq', value: 1, value2: null})" 
+        },
+        { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
+        { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
+        { 
+          name: "optimisticOperation", 
+          type: "string", 
+          displayName: "Optimistic operation (addRow / editRow / deleteRow / replaceData) (optional)",
+        },
+        { name: "optimisticData", type: "object", displayName: "Data for optimistic operation  (if doing). For addRow / editRow / deleteRow: must be an object. For editRow / deleteRow the unique identifier field must be present. For replaceData must be array of objects." },
       ],
     },
     refetchRows: {

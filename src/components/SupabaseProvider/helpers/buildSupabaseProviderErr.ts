@@ -5,7 +5,7 @@ import type { SupabaseProviderError } from "../types";
 
 type BuildSupabaseProviderErrorParams = {
   error: any;
-  operation: SupabaseProviderError["actionAttempted"];
+  actionAttempted: SupabaseProviderError["actionAttempted"];
   summary: string;
   dataForSupabase?: SupabaseProviderError["dataForSupabase"];
   optimisticData?: SupabaseProviderError["optimisticData"];
@@ -17,7 +17,7 @@ type BuildSupabaseProviderError = (
 
 export const buildSupabaseProviderError: BuildSupabaseProviderError = ({
   error,
-  operation,
+  actionAttempted,
   summary,
   dataForSupabase,
   optimisticData,
@@ -26,7 +26,7 @@ export const buildSupabaseProviderError: BuildSupabaseProviderError = ({
     errorId: uuid(),
     summary,
     errorMessage: getErrMsg(error),
-    actionAttempted: operation,
+    actionAttempted,
     dataForSupabase: dataForSupabase ? dataForSupabase : null,
     optimisticData: optimisticData ? optimisticData : null,
   };

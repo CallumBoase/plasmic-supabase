@@ -75,6 +75,7 @@ export const fetchDataFromSupabase = async ({
       limit,
       offset,
       returnCount,
+      runSelectAfterMutate: false,
     });
 
     // Add a 1 second delay for testing when indicated
@@ -101,7 +102,7 @@ export const fetchDataFromSupabase = async ({
     console.error(err);
     const supabaseProviderError = buildSupabaseProviderError({
       error: err,
-      operation: "select",
+      actionAttempted: "select",
       summary: "Error fetching records"
     });
     setErrorFromFetch(supabaseProviderError);

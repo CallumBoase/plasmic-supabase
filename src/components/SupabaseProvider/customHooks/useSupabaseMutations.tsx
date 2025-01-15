@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import createClient from "../../../utils/supabase/component";
-import buildSupabaseQueryWithDynamicFilters from "./buildSupabaseQueryWithDynamicFilters";
+import buildSupabaseQueryWithDynamicFilters from "../helpers/buildSupabaseQueryWithDynamicFilters";
 
 type MutationDependencies = {
   tableName: string;
@@ -10,7 +10,8 @@ type MutationDependencies = {
   simulateRandomMutationErrors: boolean;
 };
 
-import type { SupabaseProviderFetchResult, Row, MutationTypes } from "../types";
+import type { SupabaseProviderFetchResult, Row, Rows, MutationTypes, FlexibleMutationOperations } from "../types";
+import type { Filter } from "../helpers/buildSupabaseQueryWithDynamicFilters";
 
 export function useSupabaseMutations(dependencies: MutationDependencies) {
   const {
@@ -45,7 +46,7 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
         operation = mutationType;
       } else {
         throw new Error(
-          "Invalid operation type in useSupabaseMutatoins.buildStandardMutator. Use the advanced mutator function instead"
+          "Invalid operation type in useSupabaseMutations.buildStandardMutator. Use the advanced mutator function instead"
         );
       }
 
@@ -105,9 +106,14 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
       dataForSupabase: rowForSupabase,
       shouldReturnRow,
     }: {
-      dataForSupabase: Row;
+      dataForSupabase: Row | undefined;
       shouldReturnRow: boolean;
     }) => {
+
+      if(!rowForSupabase) {
+        throw new Error("Error in addRow: dataForSupabase must be an object but none was provided. (Error from addRowMutator)");
+      }
+
       return buildStandardMutator({
         mutationType: "insert",
         rowForSupabase,
@@ -122,9 +128,14 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
       dataForSupabase: rowForSupabase,
       shouldReturnRow,
     }: {
-      dataForSupabase: Row;
+      dataForSupabase: Row | undefined;
       shouldReturnRow: boolean;
     }) => {
+
+      if(!rowForSupabase) {
+        throw new Error("Error in editRow: dataForSupabase must be an object but none was provided. (Error from editRowMutator)");
+      }
+
       return buildStandardMutator({
         mutationType: "update",
         rowForSupabase,
@@ -139,9 +150,14 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
       dataForSupabase: rowForSupabase,
       shouldReturnRow,
     }: {
-      dataForSupabase: Row;
+      dataForSupabase: Row | undefined;
       shouldReturnRow: boolean;
     }) => {
+
+      if(!rowForSupabase) {
+        throw new Error("Error in deleteRow: the unique identifier value was empty, so we were unable to construct the row to be deleted. (Error from deleteRowMutator)");
+      }
+
       return buildStandardMutator({
         mutationType: "delete",
         rowForSupabase,
@@ -151,5 +167,76 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
     [buildStandardMutator]
   );
 
-  return { addRowMutator, editRowMutator, deleteRowMutator };
+  // Function to build a simple insert / update / delete mutator function
+  const flexibleMutator = useCallback(
+    async ({
+      tableName,
+      flexibleMutationOperation,
+      dataForSupabase,
+      filters,
+      runSelectAfterMutate
+    }: {
+      tableName: string;
+      flexibleMutationOperation: FlexibleMutationOperations;
+      dataForSupabase: Row | Rows | undefined | null;
+      filters?: Filter[];
+      runSelectAfterMutate: boolean;
+    }): Promise<SupabaseProviderFetchResult> => {
+      // Build the supabase query to insert the row with optional return of the new row
+      const supabase = createClient();
+
+      // Make sure the operation is valid
+      if (
+        flexibleMutationOperation !== "insert" &&
+        flexibleMutationOperation !== "update" &&
+        flexibleMutationOperation !== "upsert" &&
+        flexibleMutationOperation !== "delete"
+      ) {
+        throw new Error(
+          "Invalid operation type in useSupabaseMutations.buildFlexibleMutator. You must specify 'insert' or 'update' or ' upsert' or 'delete'"
+        );
+      }
+
+      const query = buildSupabaseQueryWithDynamicFilters({
+        supabase,
+        tableName,
+        operation: flexibleMutationOperation,
+        columns: undefined,
+        dataForSupabase,
+        filters,
+        orderBy: null,
+        limit: undefined,
+        offset: undefined,
+        returnCount: "none",
+        runSelectAfterMutate,
+      });
+
+      // Add delay for testing when indicated
+      if (addDelayForTesting)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Simulate random mutation errors for testing when indicated
+      if (simulateRandomMutationErrors && Math.random() > 0.5) {
+        throw new Error(
+          `Simulated random mutation error, timestamp: ${new Date().toISOString()}`
+        );
+      }
+
+      // Run the query
+      const { data, count, error } = await query;
+
+      // If there is an error, throw it
+      if (error) {
+        throw error;
+      }
+
+      // Return the data and count
+      // Count is not technically needed because we aren't counting rows,
+      // however, the return type of this function needs to match the fetcher,  so we include it anyway
+      return { data, count };
+    },
+    [addDelayForTesting, simulateRandomMutationErrors]
+  );
+
+  return { addRowMutator, editRowMutator, deleteRowMutator, flexibleMutator };
 }

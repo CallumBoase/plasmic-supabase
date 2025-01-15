@@ -15,7 +15,8 @@ export type OptimisticRow = Row & {
 export type Rows = Row[];
 
 export type MutationTypes = "insert" | "update" | "delete" | "rpc" | "flexibleMutation";
-export type OptimisticOperation = "insert" | "update" | "delete" | "replaceData" | null;
+export type OptimisticOperation = "addRow" | "editRow" | "deleteRow" | "replaceData" | null;
+export type FlexibleMutationOperations = "insert" | "update" | "upsert" | "delete";
 export type ElementActionName = "Add Row" | "Edit Row" | "Delete Row" | "Run RPC" | "Flexible Mutation";
 export type ReturnCountOptions = "none" | "exact" | "planned" | "estimated";
 
@@ -48,8 +49,8 @@ export type SupabaseProviderMutateResult = {
   //this is the count that will be displayed optimistically
   //for addRow, editRow and deleteRow, we automatically adjuts the count optimistically so there will be no optimistic count
   optimisticCount: number | null;
-  dataForSupabase: Row | Rows;
-  action: "insert" | "update" | "delete" | "rpc" | "flexibleMutation";
+  dataForSupabase: Row | Rows | undefined;
+  action: MutationTypes;
   summary: string;
   status: "success" | "error" | "pending";
   error: SupabaseProviderError | null;

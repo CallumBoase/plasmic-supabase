@@ -1,12 +1,14 @@
 // useOptimisticOperations.ts
 import { useCallback } from "react";
-import clientSideOrderBy from "./clientSideOrderBy";
+import clientSideOrderBy from "../helpers/clientSideOrderBy";
 import type {
   SupabaseProviderFetchResult,
   OptimisticRow,
+  Rows,
   ReturnCountOptions,
+  OptimisticOperation,
 } from "../types";
-import type { OrderBy } from "./buildSupabaseQueryWithDynamicFilters";
+import type { OrderBy } from "../helpers/buildSupabaseQueryWithDynamicFilters";
 
 export type UseOptimisticOperationsProps = {
   returnCount?: ReturnCountOptions;
@@ -137,10 +139,93 @@ export function useOptimisticOperations({
     [returnCount, memoizedOrderBy, uniqueIdentifierField]
   );
 
+  const replaceDataOptimistically = useCallback(
+    (
+      _currentData: SupabaseProviderFetchResult | undefined,
+      //optimisticData is Rows not OptimisticRows because it's unedited from the user-provided value
+      optimisticData: Rows,
+      optimisticCount?: number
+    ) => {
+      return {
+        data: optimisticData,
+        count: optimisticCount || null,
+      };
+    },
+    []
+  );
+
+  const chooseOptimisticFunction = useCallback(
+    ({
+      requestedOptimisticOperation,
+      optimisticRowFinal,
+      optimisticDataFinal,
+      optimisticCount,
+    }: {
+      requestedOptimisticOperation: OptimisticOperation | undefined;
+      optimisticRowFinal: OptimisticRow | undefined;
+      optimisticDataFinal: Rows | undefined;
+      optimisticCount: number | undefined;
+    }) => {
+      let optimisticFunc;
+
+      switch (requestedOptimisticOperation) {
+        case undefined:
+          optimisticFunc = returnUnchangedData;
+          break;
+
+        case "addRow":
+          optimisticFunc = optimisticRowFinal
+            ? addRowOptimistically
+            : returnUnchangedData;
+          break;
+
+        case "editRow":
+          optimisticFunc = optimisticRowFinal
+            ? editRowOptimistically
+            : returnUnchangedData;
+          break;
+
+        case "deleteRow":
+          optimisticFunc = optimisticRowFinal
+            ? deleteRowOptimistically
+            : returnUnchangedData;
+          break;
+
+        case "replaceData":
+          optimisticFunc = optimisticDataFinal
+            ? (currentData: SupabaseProviderFetchResult | undefined) => {
+                return replaceDataOptimistically(
+                  currentData,
+                  optimisticDataFinal,
+                  optimisticCount
+                );
+              }
+            : returnUnchangedData;
+          break;
+
+        default:
+          throw new Error(
+            "Error in handleMutationWithOptimisticUpdates: Invalid optimisticOperation in flexibleMutationSettings"
+          );
+      }
+
+      return optimisticFunc;
+    },
+    [
+      addRowOptimistically,
+      editRowOptimistically,
+      deleteRowOptimistically,
+      replaceDataOptimistically,
+      returnUnchangedData,
+    ]
+  );
+
   return {
     returnUnchangedData,
     addRowOptimistically,
     editRowOptimistically,
     deleteRowOptimistically,
+    replaceDataOptimistically,
+    chooseOptimisticFunction,
   };
 }
