@@ -50,7 +50,11 @@ export const useMutationWithOptimisticUpdates = ({
   const [isMutating, setIsMutating] = useState<boolean>(false);
 
   // Build the mutator functions based on dependencies from our custom useSupabaseMutations hook
-  const { addRowMutator, editRowMutator } = useSupabaseMutations({
+  const { 
+    addRowMutator, 
+    editRowMutator, 
+    deleteRowMutator 
+  } = useSupabaseMutations({
     tableName,
     columns,
     uniqueIdentifierField,
@@ -60,7 +64,12 @@ export const useMutationWithOptimisticUpdates = ({
 
   // Get the buildOptimisticFunc function from our custom useOptimisticOperations hook
   // This function can be run to return the correct optimistic function to run during mutation
-  const { addRowOptimistically, returnUnchangedData, editRowOptimistically } =
+  const { 
+    addRowOptimistically, 
+    returnUnchangedData, 
+    editRowOptimistically,
+    deleteRowOptimistically
+  } =
     useOptimisticOperations({
       returnCount,
       uniqueIdentifierField,
@@ -128,6 +137,7 @@ export const useMutationWithOptimisticUpdates = ({
           count: null,
           optimisticData: optimisticRowFinal || optimisticData || null,
           optimisticCount: optimisticCount || null,
+          dataForSupabase,
           action: operation,
           summary: operationPhrases.inProgress,
           status: "pending",
@@ -151,6 +161,12 @@ export const useMutationWithOptimisticUpdates = ({
           mutatorFunction = editRowMutator;
           optimisticFunc = optimisticRowFinal
             ? editRowOptimistically
+            : returnUnchangedData;
+          break;
+        case "delete":
+          mutatorFunction = deleteRowMutator;
+          optimisticFunc = optimisticRowFinal
+            ? deleteRowOptimistically
             : returnUnchangedData;
           break;
         default:
@@ -183,6 +199,7 @@ export const useMutationWithOptimisticUpdates = ({
             count: response ? response.count : null,
             optimisticData: optimisticRowFinal || optimisticData || null,
             optimisticCount: optimisticCount || null,
+            dataForSupabase,
             action: operation,
             summary: operationPhrases.success,
             status: "success",
@@ -216,6 +233,7 @@ export const useMutationWithOptimisticUpdates = ({
               count: null,
               optimisticData: optimisticRowFinal || optimisticData || null,
               optimisticCount: optimisticCount || null,
+              dataForSupabase,
               action: operation,
               summary: operationPhrases.error,
               status: "error",

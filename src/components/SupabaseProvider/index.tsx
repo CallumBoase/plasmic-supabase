@@ -44,6 +44,12 @@ interface Actions {
     returnImmediately: boolean,
     optimisticRow?: Row
   ): Promise<SupabaseProviderFetchResult>;
+  deleteRow(
+    uniqueIdentifierVal: string,
+    shouldReturnRow: boolean,
+    returnImmediately: boolean,
+    shouldRunOptimistically: boolean
+  ): Promise<SupabaseProviderFetchResult>;
   refetchRows(): Promise<void>;
 }
 
@@ -196,6 +202,30 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
           optimisticRow,
           mutate,
         });
+      },
+
+      deleteRow: async (
+        uniqueIdentifierVal,
+        shouldReturnRow,
+        returnImmediately,
+        shouldRunOptimistically
+      ): Promise<SupabaseProviderFetchResult> => {
+
+        return handleMutation({
+          operation: "delete",
+          // Build an object with the unique identifier field and it's value to match normal Row object
+          dataForSupabase: { [uniqueIdentifierField]: uniqueIdentifierVal },
+          shouldReturnRow,
+          returnImmediately,
+          // Build an optimistic row object with the unique identifier field and it's value
+          // if shouldRunOptimistically is true
+          // otherwise leave it undefined so no optimistic operation runs
+          optimisticRow: shouldRunOptimistically
+            ? { [uniqueIdentifierField]: uniqueIdentifierVal }
+            : undefined,
+          mutate,
+        });
+
       },
 
       // refetchRows element action

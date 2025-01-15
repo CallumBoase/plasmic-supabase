@@ -134,5 +134,22 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
     [buildStandardMutator]
   );
 
-  return { addRowMutator, editRowMutator };
+  const deleteRowMutator = useCallback(
+    async ({
+      dataForSupabase: rowForSupabase,
+      shouldReturnRow,
+    }: {
+      dataForSupabase: Row;
+      shouldReturnRow: boolean;
+    }) => {
+      return buildStandardMutator({
+        mutationType: "delete",
+        rowForSupabase,
+        runSelectAfterMutate: shouldReturnRow,
+      });
+    },
+    [buildStandardMutator]
+  );
+
+  return { addRowMutator, editRowMutator, deleteRowMutator };
 }

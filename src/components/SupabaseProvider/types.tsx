@@ -48,6 +48,7 @@ export type SupabaseProviderMutateResult = {
   //this is the count that will be displayed optimistically
   //for addRow, editRow and deleteRow, we automatically adjuts the count optimistically so there will be no optimistic count
   optimisticCount: number | null;
+  dataForSupabase: Row | Rows;
   action: "insert" | "update" | "delete" | "rpc" | "flexibleMutation";
   summary: string;
   status: "success" | "error" | "pending";

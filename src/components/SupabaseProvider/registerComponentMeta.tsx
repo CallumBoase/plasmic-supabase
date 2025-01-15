@@ -254,6 +254,15 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
         { name: "optimisticRow", type: "object", displayName: "Optimistic edited row object (optional). Must include the unqiue identifier field (eg id)" },
       ],
     },
+    deleteRow: {
+      description: "Dlete a row frp, the database",
+      argTypes: [
+        { name: "uniqueIdentifierVal", type: "string", displayName: "Id / unique identifier of the row to delete" },
+        { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
+        { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
+        { name: "shouldRunOptimistically", type: "boolean", displayName: "Run optimistic delete while we wait for mutation to finish?" },
+      ],
+    },
     refetchRows: {
       description: "refetch rows from the database",
       argTypes: [],

@@ -3,7 +3,6 @@ import { useCallback } from "react";
 import clientSideOrderBy from "./clientSideOrderBy";
 import type {
   SupabaseProviderFetchResult,
-  Row,
   OptimisticRow,
   ReturnCountOptions,
 } from "../types";
@@ -97,7 +96,7 @@ export function useOptimisticOperations({
       currentData: SupabaseProviderFetchResult | undefined,
       //optimisticData is either an object with the unique identifier field (usually 'id') present in the first level of the object
       //or a number or string (the actual value of the unique identifier field (id) to filter by)
-      optimisticData: number | string | Row
+      optimisticRow: OptimisticRow
     ) => {
       if (!currentData) {
         return {
@@ -108,17 +107,7 @@ export function useOptimisticOperations({
 
       //Extract the unique identifier value from the optimistic data
       //So we can filter the row out of the data based on this
-      let uniqueIdentifierVal: any;
-
-      if (typeof optimisticData === "object") {
-        //If the unique identifier is an object, look for the unique identifier value in the object
-        //Based on the user-specified unique identifier field
-        //Eg {a: 1, id: 123} would extract 123
-        uniqueIdentifierVal = optimisticData[uniqueIdentifierField];
-      } else {
-        //Otherwise, assume the uniqueIdentifierVal has been directly provided eg value of '123'
-        uniqueIdentifierVal = optimisticData;
-      }
+      let uniqueIdentifierVal = optimisticRow[uniqueIdentifierField];
 
       //If the extracted value for the unique identifier is not a number or string, throw an error
       if (
