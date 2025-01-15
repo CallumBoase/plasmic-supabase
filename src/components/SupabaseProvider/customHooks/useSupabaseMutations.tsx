@@ -238,5 +238,38 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
     [addDelayForTesting, simulateRandomMutationErrors]
   );
 
-  return { addRowMutator, editRowMutator, deleteRowMutator, flexibleMutator };
+  const runRpc = useCallback(
+    async ({
+      rpcName,
+      dataForSupabase
+    }: {
+      rpcName: string;
+      dataForSupabase: any;
+    }) => {
+      const supabase = createClient();
+
+      // Add delay for testing when indicated
+      if (addDelayForTesting)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Simulate random mutation errors for testing when indicated
+      if (simulateRandomMutationErrors && Math.random() > 0.5) {
+        throw new Error(
+          `Simulated random mutation error, timestamp: ${new Date().toISOString()}`
+        );
+      }
+
+      const { data, count, error } = await supabase.rpc(rpcName, dataForSupabase);
+
+      if (error) {
+        throw error;
+      }
+
+      return { data, count };
+
+    },
+    [addDelayForTesting, simulateRandomMutationErrors]
+  );
+
+  return { addRowMutator, editRowMutator, deleteRowMutator, flexibleMutator, runRpc };
 }

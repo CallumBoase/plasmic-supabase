@@ -68,6 +68,15 @@ interface Actions {
     optimisticCount: number | undefined,
     customMetadata?: Object
   ): Promise<SupabaseProviderFetchResult>;
+  runRpc(
+    rpcName: string,
+    dataForSupabase: any,
+    returnImmediately: boolean,
+    optimisticOperation: OptimisticOperation | undefined,
+    optimisticData: Row | Rows | undefined,
+    optimisticCount: number | undefined,
+    customMetadata?: Object
+  ): Promise<SupabaseProviderFetchResult>;
   refetchRows(): Promise<void>;
 }
 
@@ -282,6 +291,31 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
             optimisticOperation,
           }
         });
+      },
+
+      runRpc: async (
+        rpcName,
+        dataForSupabase,
+        returnImmediately,
+        optimisticOperation,
+        optimisticData,
+        optimisticCount,
+        customMetadata
+      ): Promise<SupabaseProviderFetchResult> => {
+        return handleMutation({
+          mutationType: "rpc",
+          dataForSupabase,
+          shouldReturnRow: false,
+          returnImmediately,
+          optimisticData,
+          optimisticCount,
+          customMetadata,
+          mutate,
+          rpcSettings: {
+            rpcName,
+            optimisticOperation
+          }
+        })
       },
 
 

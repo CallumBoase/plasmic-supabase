@@ -34,7 +34,7 @@ export type SupabaseProviderError = {
 // Type for the response from a fetch of data from Supabase
 // Uses { data, count } from supabase.select() response
 export type SupabaseProviderFetchResult = {
-  data: PostgrestResponseSuccess<Rows>["data"] | null;
+  data: PostgrestResponseSuccess<Rows>["data"] |null;
   count: PostgrestResponseSuccess<Rows>["count"] | null;
 };
 
@@ -42,7 +42,8 @@ export type SupabaseProviderFetchResult = {
 // Uses { data, count } from supabase.insert/update/delete/rpc/select() response
 // And we include an error object (or null)
 export type SupabaseProviderMutateResult = {
-  data: PostgrestResponseSuccess<Rows>["data"] | null;
+  // data: PostgrestResponseSuccess<Rows>["data"] |  null;
+  data: PostgrestResponseSuccess<Rows>["data"] |  null;
   count: PostgrestResponseSuccess<Rows>["count"] | null;
   //optimisticData may be a single row (eg from addRow or editRow) or multiple rows ie the entire optimisticData (eg from runRpc or fleixbleMutaiton)
   optimisticData: OptimisticRow | Rows | null;

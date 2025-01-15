@@ -4,9 +4,10 @@ import { useState } from "react";
 import { v4 as uuid } from "uuid";
 import { buildSupabaseProviderError } from "../helpers/buildSupabaseProviderErr";
 import { getMutationPhrases } from "../helpers/getOperationPhrases";
-// import { getOptimisticOperation } from "./getOptimisticOperation";
 import { useSupabaseMutations } from "./useSupabaseMutations";
 import { useOptimisticOperations } from "./useOptimisticOperations";
+import { validateFlexibleMutationSettings } from "../helpers/validateFlexibleMutationSettings";
+import { validateDynamicOptimisticSettings } from "../helpers/validateDynamicOptimisticSettings";
 
 import type { KeyedMutator } from "swr";
 
@@ -23,7 +24,10 @@ import type {
   ReturnCountOptions,
 } from "../types";
 
-import { type OrderBy, Filter } from "../helpers/buildSupabaseQueryWithDynamicFilters";
+import {
+  type OrderBy,
+  Filter,
+} from "../helpers/buildSupabaseQueryWithDynamicFilters";
 
 type UseMutationWithOptimisticUpdatesParams = {
   tableName: string;
@@ -36,8 +40,6 @@ type UseMutationWithOptimisticUpdatesParams = {
   memoizedOnMutateSuccess: (mutateResult: SupabaseProviderMutateResult) => void;
   memoizedOnError: (supabaseProviderError: SupabaseProviderError) => void;
 };
-
-import { validateFlexibleMutationSettings } from "../helpers/validateFlexibleMutationSettings";
 
 export const useMutationWithOptimisticUpdates = ({
   tableName,
@@ -54,14 +56,19 @@ export const useMutationWithOptimisticUpdates = ({
   const [isMutating, setIsMutating] = useState<boolean>(false);
 
   // Build the mutator functions based on dependencies from our custom useSupabaseMutations hook
-  const { addRowMutator, editRowMutator, deleteRowMutator, flexibleMutator } =
-    useSupabaseMutations({
-      tableName,
-      columns,
-      uniqueIdentifierField,
-      addDelayForTesting,
-      simulateRandomMutationErrors,
-    });
+  const {
+    addRowMutator,
+    editRowMutator,
+    deleteRowMutator,
+    flexibleMutator,
+    runRpc,
+  } = useSupabaseMutations({
+    tableName,
+    columns,
+    uniqueIdentifierField,
+    addDelayForTesting,
+    simulateRandomMutationErrors,
+  });
 
   // Get the buildOptimisticFunc function from our custom useOptimisticOperations hook
   // This function can be run to return the correct optimistic function to run during mutation
@@ -96,6 +103,7 @@ export const useMutationWithOptimisticUpdates = ({
     customMetadata,
     mutate,
     flexibleMutationSettings,
+    rpcSettings
   }: {
     mutationType: MutationTypes;
     dataForSupabase: Row | Rows | undefined;
@@ -112,6 +120,10 @@ export const useMutationWithOptimisticUpdates = ({
       filters?: Filter[];
       optimisticOperation?: OptimisticOperation;
     };
+    rpcSettings?: {
+      rpcName: string;
+      optimisticOperation?: OptimisticOperation;
+    }
   }): Promise<SupabaseProviderFetchResult> => {
     return new Promise((resolve) => {
       setIsMutating(true);
@@ -123,8 +135,20 @@ export const useMutationWithOptimisticUpdates = ({
           operation: flexibleMutationSettings?.operation,
           dataForSupabase,
           filters: flexibleMutationSettings?.filters,
+        });
+        validateDynamicOptimisticSettings({
           optimisticData,
-          optimisticOperation: flexibleMutationSettings?.optimisticOperation,
+          requestedOptimisticOperation: flexibleMutationSettings?.optimisticOperation,
+        });
+      }
+
+      if (mutationType === 'rpc') {
+        if (!rpcSettings?.rpcName) {
+          throw new Error("Error: You must provide an rpcName in runRpc action (error in in handleMutationWithOptimisticUpdate)");
+        }
+        validateDynamicOptimisticSettings({
+          optimisticData,
+          requestedOptimisticOperation: rpcSettings.optimisticOperation
         });
       }
 
@@ -181,7 +205,7 @@ export const useMutationWithOptimisticUpdates = ({
           summary: mutationPhrases.inProgress,
           status: "pending",
           error: null,
-          customMetadata
+          customMetadata,
         };
         resolve(result);
       }
@@ -203,6 +227,20 @@ export const useMutationWithOptimisticUpdates = ({
           dataForSupabase,
           filters: flexibleMutationSettings!.filters,
           runSelectAfterMutate: shouldReturnRow,
+        });
+      };
+
+      // Helper to create rpcMutator function that has same inputs as normal mutators
+      // Used when building mutator functions below
+      const createRpcMutator = ({
+        dataForSupabase,
+      }: {
+        dataForSupabase: any;
+      }) => {
+        return runRpc({
+          // Due to previous checks, we know that rpcSettings is defined if we are running the rpc mutation
+          rpcName: rpcSettings!.rpcName,
+          dataForSupabase,
         });
       };
 
@@ -235,6 +273,17 @@ export const useMutationWithOptimisticUpdates = ({
           optimisticFunc = chooseOptimisticFunction({
             requestedOptimisticOperation:
               flexibleMutationSettings?.optimisticOperation,
+            optimisticRowFinal,
+            optimisticDataFinal,
+            optimisticCount,
+          });
+
+          break;
+        case "rpc":
+          mutatorFunction = createRpcMutator;
+
+          optimisticFunc = chooseOptimisticFunction({
+            requestedOptimisticOperation: rpcSettings?.optimisticOperation,
             optimisticRowFinal,
             optimisticDataFinal,
             optimisticCount,
@@ -275,7 +324,7 @@ export const useMutationWithOptimisticUpdates = ({
             summary: mutationPhrases.success,
             status: "success",
             error: null,
-            customMetadata
+            customMetadata,
           };
 
           if (memoizedOnMutateSuccess) {
@@ -311,7 +360,7 @@ export const useMutationWithOptimisticUpdates = ({
               summary: mutationPhrases.error,
               status: "error",
               error: supabaseProviderError,
-              customMetadata
+              customMetadata,
             };
             resolve(result);
           }

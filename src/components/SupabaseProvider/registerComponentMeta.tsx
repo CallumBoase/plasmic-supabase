@@ -289,6 +289,22 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
         { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to onMutateSuccess and onError (optional)" },
       ],
     },
+    runRpc: {
+      description: 'Run a RPC (function) in Supabase',
+      argTypes: [
+        { name: "rpcName", displayName: 'Name of the RPC', type: "string" },
+        { name: "dataForSupabase", displayName: 'Data for to pass to the RPC', type: "object"},
+        { name: "returnImmediately", displayName: 'Run next action immediately without waiting for mutation to finish?', type: "boolean"},
+        { 
+          name: "optimisticOperation", 
+          type: "string", 
+          displayName: "Optimistic operation (addRow / editRow / deleteRow / replaceData) (optional)",
+        },
+        { name: "optimisticData", type: "object", displayName: "Data for optimistic operation  (if doing). For addRow / editRow / deleteRow: must be an object. For editRow / deleteRow the unique identifier field must be present. For replaceData must be array of objects." },
+        { name: "optimisticCount", type: "number", displayName: "Optimistic count value (optional, if doing replaceData optimistic operation)" },
+        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to onMutateSuccess and onError (optional)" },
+      ]
+    },
     refetchRows: {
       description: "refetch rows from the database",
       argTypes: [],
