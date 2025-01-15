@@ -260,7 +260,7 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
         { name: "uniqueIdentifierVal", type: "string", displayName: "Id / unique identifier of the row to delete" },
         { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
         { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
-        { name: "shouldRunOptimistically", type: "boolean", displayName: "Run optimistic delete while we wait for mutation to finish?" },
+        { name: "shouldRunOptimistically", type: "boolean", displayName: "Delete row optimistically?" },
       ],
     },
     refetchRows: {
