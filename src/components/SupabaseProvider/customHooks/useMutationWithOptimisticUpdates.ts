@@ -104,7 +104,7 @@ export const useMutationWithOptimisticUpdates = ({
     optimisticRow?: Row;
     optimisticData?: Row | Rows;
     optimisticCount?: number;
-    customMetadata: Object | undefined;
+    customMetadata?: Object;
     mutate: KeyedMutator<SupabaseProviderFetchResult>;
     flexibleMutationSettings?: {
       tableName: string;

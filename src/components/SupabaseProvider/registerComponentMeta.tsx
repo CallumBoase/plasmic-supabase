@@ -272,7 +272,6 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
         { name: "tableName", type: "string", displayName: "Table name (to run mutation on)"},
         { name: "operation", type: "string", displayName: "Operation to run in the database (insert / update / upsert / delete)" },
         { name: "dataForSupabase", type: "object", displayName: "Data for Supabase API call (leave blank for delete)" },
-        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to pass to onMutateSuccess and onError (optional)" },
         { 
           name: "filters", 
           type: "object", 
@@ -287,7 +286,7 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
         },
         { name: "optimisticData", type: "object", displayName: "Data for optimistic operation  (if doing). For addRow / editRow / deleteRow: must be an object. For editRow / deleteRow the unique identifier field must be present. For replaceData must be array of objects." },
         { name: "optimisticCount", type: "number", displayName: "Optimistic count value (optional, if doing replaceData optimistic operation)" },
-        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to pass to onMutateSuccess and onError (optional)" },
+        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to onMutateSuccess and onError (optional)" },
       ],
     },
     refetchRows: {
