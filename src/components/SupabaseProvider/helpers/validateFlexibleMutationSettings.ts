@@ -35,17 +35,13 @@ export const validateFlexibleMutationSettings = ({
     }
   }
 
-  // If operation is delete, update or upsert, an array of filters must be provided
+  // If operation is delete or update, an array of filters must be provided
   if (
-    (operation === "delete" ||
-      operation === "update" ||
-      operation === "upsert") &&
+    (operation === "delete" || operation === "update") &&
     (!filters || !Array.isArray(filters) || filters.length === 0)
   ) {
     throw new Error(
-      "Flexible query error: You must provide an array filters ([{fieldName: string, operator: supabaseFilterOps, value: any, value2?: any}]) when running operations: delete, update or upsert."
+      "Flexible query error: You must provide an array of filters ([{fieldName: string, operator: supabaseFilterOps, value: any, value2?: any}]) when running operations: delete, update or upsert."
     );
   }
 };
-
-
