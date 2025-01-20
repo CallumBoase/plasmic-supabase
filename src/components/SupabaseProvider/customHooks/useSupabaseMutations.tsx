@@ -10,7 +10,14 @@ type MutationDependencies = {
   simulateRandomMutationErrors: boolean;
 };
 
-import type { SupabaseProviderFetchResult, Row, Rows, MutationTypes, FlexibleMutationOperations } from "../types";
+import type {
+  SupabaseProviderFetchResult,
+  RpcResponse,
+  Row,
+  Rows,
+  MutationTypes,
+  FlexibleMutationOperations,
+} from "../types";
 import type { Filter } from "../helpers/buildSupabaseQueryWithDynamicFilters";
 
 export function useSupabaseMutations(dependencies: MutationDependencies) {
@@ -64,7 +71,7 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
                   fieldName: uniqueIdentifierField,
                   operator: "eq",
                   value: rowForSupabase[uniqueIdentifierField],
-                  value2: undefined
+                  value2: undefined,
                 },
               ],
         orderBy: null,
@@ -109,9 +116,10 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
       dataForSupabase: Row | undefined;
       shouldReturnRow: boolean;
     }) => {
-
-      if(!rowForSupabase) {
-        throw new Error("Error in addRow: dataForSupabase must be an object but none was provided. (Error from addRowMutator)");
+      if (!rowForSupabase) {
+        throw new Error(
+          "Error in addRow: dataForSupabase must be an object but none was provided. (Error from addRowMutator)"
+        );
       }
 
       return buildStandardMutator({
@@ -131,9 +139,10 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
       dataForSupabase: Row | undefined;
       shouldReturnRow: boolean;
     }) => {
-
-      if(!rowForSupabase) {
-        throw new Error("Error in editRow: dataForSupabase must be an object but none was provided. (Error from editRowMutator)");
+      if (!rowForSupabase) {
+        throw new Error(
+          "Error in editRow: dataForSupabase must be an object but none was provided. (Error from editRowMutator)"
+        );
       }
 
       return buildStandardMutator({
@@ -153,9 +162,10 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
       dataForSupabase: Row | undefined;
       shouldReturnRow: boolean;
     }) => {
-
-      if(!rowForSupabase) {
-        throw new Error("Error in deleteRow: the unique identifier value was empty, so we were unable to construct the row to be deleted. (Error from deleteRowMutator)");
+      if (!rowForSupabase) {
+        throw new Error(
+          "Error in deleteRow: the unique identifier value was empty, so we were unable to construct the row to be deleted. (Error from deleteRowMutator)"
+        );
       }
 
       return buildStandardMutator({
@@ -167,14 +177,19 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
     [buildStandardMutator]
   );
 
-  // Function to build a simple insert / update / delete mutator function
+  // Function to perform a flexible (dynamic) mutation in Supabase based on specified settings
+  // This differs from standard addRowMutator/editRowMutator/deleteRowMutator in a few ways
+  // 1. Allows for more complex operations like upsert
+  // 2. User can specify the filters for the update
+  // 3. User can specify what table to mutate (can be different from the SupabaseProvider's table)
+  // 4. User can specify what optimistic operation to run
   const flexibleMutator = useCallback(
     async ({
       tableName,
       flexibleMutationOperation,
       dataForSupabase,
       filters,
-      runSelectAfterMutate
+      runSelectAfterMutate,
     }: {
       tableName: string;
       flexibleMutationOperation: FlexibleMutationOperations;
@@ -238,14 +253,16 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
     [addDelayForTesting, simulateRandomMutationErrors]
   );
 
+  // Function to run a Supabase RPC
+  // This notably returns data in any shape, not the predicatble SupabaseProviderFetchResult
   const runRpc = useCallback(
     async ({
       rpcName,
-      dataForSupabase
+      dataForSupabase,
     }: {
       rpcName: string;
       dataForSupabase: any;
-    }) => {
+    }): Promise<RpcResponse> => {
       const supabase = createClient();
 
       // Add delay for testing when indicated
@@ -259,17 +276,25 @@ export function useSupabaseMutations(dependencies: MutationDependencies) {
         );
       }
 
-      const { data, count, error } = await supabase.rpc(rpcName, dataForSupabase);
+      const { data, count, error } = await supabase.rpc(
+        rpcName,
+        dataForSupabase
+      );
 
       if (error) {
         throw error;
       }
 
       return { data, count };
-
     },
     [addDelayForTesting, simulateRandomMutationErrors]
   );
 
-  return { addRowMutator, editRowMutator, deleteRowMutator, flexibleMutator, runRpc };
+  return {
+    addRowMutator,
+    editRowMutator,
+    deleteRowMutator,
+    flexibleMutator,
+    runRpc,
+  };
 }

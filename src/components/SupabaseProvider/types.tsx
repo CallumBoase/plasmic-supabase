@@ -38,6 +38,13 @@ export type SupabaseProviderFetchResult = {
   count: PostgrestResponseSuccess<Rows>["count"] | null;
 };
 
+// Type for the response from an RPC call to Supabase
+// The format is less predictable because it depends on what the user configures the RPC to return
+export type RpcResponse = {
+  data: PostgrestResponseSuccess<any>["data"] | null;
+  count: PostgrestResponseSuccess<any>["count"] | null;
+}
+
 // Type for the response from a mutate function
 // Uses { data, count } from supabase.insert/update/delete/rpc/select() response
 // And we include an error object (or null)

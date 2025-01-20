@@ -17,6 +17,7 @@ import type {
   SupabaseProviderMutateResult,
   SupabaseProviderError,
   SupabaseProviderFetchResult,
+  RpcResponse,
   MutationTypes,
   FlexibleMutationOperations,
   OptimisticOperation,
@@ -124,7 +125,7 @@ export const useMutationWithOptimisticUpdates = ({
       rpcName: string;
       optimisticOperation?: OptimisticOperation;
     }
-  }): Promise<SupabaseProviderFetchResult> => {
+  }): Promise<SupabaseProviderFetchResult | RpcResponse> => {
     return new Promise((resolve) => {
       setIsMutating(true);
 

@@ -28,6 +28,7 @@ import type {
   SupabaseProviderError,
   FlexibleMutationOperations,
   SupabaseProviderFetchResult,
+  RpcResponse,
   SupabaseProviderMutateResult,
   ReturnCountOptions,
 } from "./types";
@@ -76,7 +77,7 @@ interface Actions {
     optimisticData: Row | Rows | undefined,
     optimisticCount: number | undefined,
     customMetadata?: Object
-  ): Promise<SupabaseProviderFetchResult>;
+  ): Promise<RpcResponse>;
   refetchRows(): Promise<void>;
 }
 
@@ -301,7 +302,7 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         optimisticData,
         optimisticCount,
         customMetadata
-      ): Promise<SupabaseProviderFetchResult> => {
+      ): Promise<RpcResponse> => {
         return handleMutation({
           mutationType: "rpc",
           dataForSupabase,
