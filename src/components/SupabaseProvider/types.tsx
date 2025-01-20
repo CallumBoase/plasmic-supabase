@@ -1,5 +1,8 @@
 import type { PostgrestResponseSuccess } from "@supabase/postgrest-js";
 
+// Useful type for empty string
+export type EmptyString = "";
+
 // Type for a single Supabase row - an object with key-value pairs
 export type Row = {
   [key: string]: any;

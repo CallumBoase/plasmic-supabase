@@ -12,6 +12,7 @@ import { validateDynamicOptimisticSettings } from "../helpers/validateDynamicOpt
 import type { KeyedMutator } from "swr";
 
 import type {
+  EmptyString,
   Row,
   Rows,
   SupabaseProviderMutateResult,
@@ -119,15 +120,26 @@ export const useMutationWithOptimisticUpdates = ({
       tableName: string;
       operation: FlexibleMutationOperations;
       filters?: Filter[];
-      optimisticOperation?: OptimisticOperation;
+      optimisticOperation?: OptimisticOperation | EmptyString;
     };
     rpcSettings?: {
       rpcName: string;
-      optimisticOperation?: OptimisticOperation;
+      optimisticOperation?: OptimisticOperation | EmptyString;
     }
   }): Promise<SupabaseProviderFetchResult | RpcResponse> => {
     return new Promise((resolve) => {
       setIsMutating(true);
+
+      // for flexibleMutation and rpc, the optimsticOperation can be provided
+      // in Plasmic studio if you set then unset optimisticOperation prop in the action
+      // it will come through as empty string instead of undefined
+      // so we set it to undefined if it's an empty string here
+      if (flexibleMutationSettings?.optimisticOperation === "") {
+        flexibleMutationSettings.optimisticOperation = undefined;
+      }
+      if (rpcSettings?.optimisticOperation === "") {
+        rpcSettings.optimisticOperation = undefined;
+      }
 
       // If we are running a flexibleMutation, validate the settings
       if (mutationType === "flexibleMutation") {
