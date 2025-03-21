@@ -33,12 +33,69 @@ Support for NextJS pages router with codegen will be added later.
 This sections covers how to create a new Plasmic project and make the `plasmic-supabase` component available in the project.
 
 After completing this section, you will be able to use the `plasmic-supabase` components in your Plasmic project to:
-  * Log a user in & out via Supabase auth
+  * Perform user related actions in Supabase auth:
+    * Sign up a user
+    * Confirm a user's email address
+    * Log a user in via email/password
+    * Log a user in via magic link
+    * Log a user out
+    * Allow user to request a password reset link
+    * Allow a logged in user to update their password
+    * Allow a logged in user to update details: email, phone, password, user metadata
   * CRUD data from your supabase database & supabase storage (including tables/buckets that have RLS policies enabled that limit actions based on logged in user)
 
 However, you will **NOT** yet be able to limit access to pages based on user authentication status. This is covered in the next section.
 
-### 01 - Create new Plasmic Project 
+### 01 - Create a new Supabase project
+1. Visit supabase.com
+2. Create a new project
+3. Once the new project is ready, click "Connect" and then "App frameworks"
+4. Copy the NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY values for later use
+5. Back in your main project dashboard, in the left sidebar, click "Authentication" then "Emails"
+6. Update each of the following emails to the content shown below:
+    <details>
+        <summary>Confirm signup</summary>
+        
+    ```md    
+      <h2>Confirm your signup</h2>
+
+      <p>Follow this link to confirm your user:</p>
+      <p><a href="{{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next={{ .RedirectTo }}">Confirm your email</a></p>
+    ```
+    </details>
+    <details>
+        <summary>Magic Link</summary>
+        
+    ```md    
+      <h2>Magic Link</h2>
+
+      <p>Follow this link to login:</p>
+      <!-- <p><a href="{{ .ConfirmationURL }}">Log In</a></p> -->
+      <p><a href="{{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=magiclink&next={{ .RedirectTo }}">Log In</a></p>
+    ```
+    </details>
+    <details>
+        <summary>Change Email Address</summary>
+        
+    ```md    
+      <h2>Confirm Change of Email</h2>
+
+      <p>Follow this link to confirm the update of your email from {{ .Email }} to {{ .NewEmail }}:</p> 
+      <p><a href="{{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=email_change&next={{ .RedirectTo }}">Change Email</a></p>
+    ```
+    </details>
+    <details>
+        <summary>Reset Password</summary>
+        
+    ```md    
+      <h2>Reset Password</h2>
+
+      <p>Follow this link to reset the password for your user:</p>
+      <p><a href="{{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next={{ .RedirectTo }}">Reset Password</a></p>
+    ```
+    </details>
+
+### 02 - Create new Plasmic Project 
 In the Plasmic web interface:
 1. Create a new Plasmic app
 2. Rename your app
@@ -46,7 +103,7 @@ In the Plasmic web interface:
 4. Add a "Push to Github" step, publishing to a new repo, nextjs, loader (recommended) method, typescript
 5. Click "publish" and wait for the build to complete
 
-### 02 - Download & modify your project code:
+### 03 - Download & modify your Plasmic project code:
 On your local machine:
 1. Clone the repo you just created to your local machine
 2. In terminal, run `npm install` to install plasmic & it's dependencies
@@ -57,23 +114,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 4. `npm install plasmic-supabase` to install this package
-5. Open `./plasmic-init.ts`. It should look like this to start with (default Plasmic comments removed for brevity)
-```ts
-import { initPlasmicLoader } from "@plasmicapp/loader-nextjs";
-
-export const PLASMIC = initPlasmicLoader({
-  projects: [
-    {
-      id: "your-plasmic-project-id",
-      token: "your-plasmic-project-token",
-    },
-  ],
-
-  preview: false,
-});
-
-```
-6. Modify `plasmic-init.ts` to import components from `plasmic-supabase`
+5. Open `./plasmic-init.ts` and modify it to look like this:
 ```ts
 import { initPlasmicLoader } from "@plasmicapp/loader-nextjs";
 import { 
@@ -121,7 +162,45 @@ function MyApp({ Component, pageProps }: AppProps) {
 
 export default MyApp;
 ```
-8. In terminal: `npm run dev` to start your Dev server
+8. In `./pages/api` directory and a new folder called `auth` and then a new file called `confirm.ts` with the following content. (Note that we modify [the official supabase method](https://supabase.com/docs/guides/auth/server-side/nextjs?queryGroups=router&router=pages) here by importing `createApiClient` from `plasmic-supabase`).
+```ts
+import { type EmailOtpType } from '@supabase/supabase-js'
+import type { NextApiRequest, NextApiResponse } from 'next'
+
+import { createApiClient as createClient } from 'plasmic-supabase'
+
+function stringOrFirstString(item: string | string[] | undefined) {
+  return Array.isArray(item) ? item[0] : item
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET') {
+    res.status(405).appendHeader('Allow', 'GET').end()
+    return
+  }
+
+  const queryParams = req.query
+  const token_hash = stringOrFirstString(queryParams.token_hash)
+  const type = stringOrFirstString(queryParams.type)
+
+  let next = '/error'
+
+  if (token_hash && type) {
+    const supabase = createClient(req, res)
+    const { error } = await supabase.auth.verifyOtp({
+      type: type as EmailOtpType,
+      token_hash,
+    })
+    if (error) {
+      console.error(error)
+    } else {
+      next = stringOrFirstString(queryParams.next) || '/'
+    }
+  }
+  res.redirect(next)
+}
+```
+9. In terminal: `npm run dev` to start your Dev server
 
 
 ### 03 - Configure custom app host 
@@ -131,33 +210,15 @@ In Plasmic studio:
 
 ### 04 - Add login and logout functionality
 In Plasmic studio:
-1. Create a login page
+1. Create a login page (with forgot password & magic link options)
     * Create page at path `/login`. 
-    * Add a form component to the page
-    * Configure the form fields so it contains an email and password input
-    * In Plasmic studio, top right next to the triangle button, click "view" and select "Turn off design mode"
-    * Turn on `Interactive` mode in the studio
-    * Fill in the form with a valid email & password of a Supabase user in your Supabase project but **don't submit it yet**
-    * Attach an interaction to the form for `onSubmit`: 
-        * Action 1: `SupabaseUserGlobalContext -> login`. Fill in the fields that appear (`Email` and `Password`) with the dynamic values from the form: `form.value.email` & `form.value.password`. Also fill in the `Success redirect` field with the home page `/`
-    * Close the form configuration popups and submit the login form with a valid email & password. You should have logged in but won't yet be able to tell.
-2. Check that login worked by showing logged in user email on the home page
-    * Ensure you've already logged in while viewing your app in Plasmic studio (see previous step 2) 
-    * Go to your project's home `/` page using the page dropdown in Plasmic studio.
-    * Click the "refresh arena" button (because Plasmic studio caches page context between visits so login status sometimes will not be available until you refresh the arena)
-    * Add a text element to the page
-    * Assign dynamic content to the text element and pick `SupabaseUser.user.email` with fallback "You are not logged in"
-    * If login succeeded in step 2, you should see the logged in user's email address on the page
-3. Add a logout button to the home page
-    * Add a button to the homepage of your app
-    * Change the button text to "Logout"
-    * Attach an interaction to the button: `onClick`: 
-        * Action 1: `SupabaseUserGlobalContext -> logout`. Leave the `Success redirect` field blank
-4. Check that you can log out
-    * Make sure you are currently logged in (see step 1 & 2) and have added a logout button to the homepage (see step 3)
-    * Turn on `Interactive` mode in the studio
-    * Click the logout button
-    * If logout succeeded, you should no longer see the logged in user's email address on the page. Instead you should see the fallback content from your text block "You are not logged in"
+    * Configure the login page as shown in [THIS VIDEO](https://drive.google.com/open?id=1HooSVuOVig_oixISwElIkfiHiFTIJ96u&usp=drive_fs)
+2. Create a signup page as shown in [THIS VIDEO](https://drive.google.com/open?id=1s1IMur6h8SE7cSMZtYTu_1Quw84KfRbJ&usp=drive_fs)
+3. Create a signup confirmation and signup complete page as shown in [THIS VIDEO](https://drive.google.com/open?id=1Xur8wBaUKtrgJY5EUGcgPowY19V7yhNX&usp=drive_fs)
+4. Create an OTP request confirmation page as shown in [THIS VIDEO](https://drive.google.com/open?id=1Xc7uNUMMhbF3N6EvNJGXzZud2NW6QIXY&usp=drive_fs)
+5. Create a change password page as shown in [THIS VIDEO](https://drive.google.com/open?id=1zLcD6p_slzwih-bsItS1vqPExjFlyYsO&usp=drive_fs)
+6. Create a home page that shows logged in user details and a logout button as shown in [THIS VIDEO](https://drive.google.com/open?id=1N28893FYPs2WlK3NZyvRMDr18UflFsES&usp=drive_fs)
+7. Verify that all the auth methods work as shown in [THIS VIDEO](https://drive.google.com/open?id=1y-d14FE0ictvlYsb2wWanaFx368YrG1P&usp=drive_fs)
 
 ### 05 - Test that you can access your Supabase database
 In Plasmic studio:
