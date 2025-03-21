@@ -204,7 +204,7 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
       required: false,
       defaultValue: false,
       description: `
-        In the standard configuration of Plasmic (NextJS + Loader API), Plasmic will prefetch data form Supabase on the server before the page containing the SupabaseProvider is rendered (if data is not in cache).
+        In the standard configuration of Plasmic (NextJS + Loader API), Plasmic will prefetch data from Supabase on the server before the page containing the SupabaseProvider is rendered (if data is not in cache).
         If data is in cache, the stale data will be used (no server-side fetch), before the client-side refetch is triggered.
         This behaviour is normally desirable because of the SEO benefits.
         However, if you wish to disable server-side prefetch, you can set this prop to TRUE.`,
