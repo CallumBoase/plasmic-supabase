@@ -208,7 +208,7 @@ In Plasmic studio:
 1. Configure you Custom App host to point to http://localhost:3000/plasmic-host
 2. When the page reloads, the registered components should be available in Add component -> Custom Components. You'll also see global actions available for login/logout etc & a global context value of logged in SupabaseUser.
 
-### 04 - Add login and logout functionality
+### 04 - Add basic authentication pages
 In Plasmic studio:
 1. Create a login page (with forgot password & magic link options)
     * Create page at path `/login`. 
@@ -219,6 +219,11 @@ In Plasmic studio:
 5. Create a change password page as shown in [THIS VIDEO](https://drive.google.com/open?id=1zLcD6p_slzwih-bsItS1vqPExjFlyYsO&usp=drive_fs)
 6. Create a home page that shows logged in user details and a logout button as shown in [THIS VIDEO](https://drive.google.com/open?id=1N28893FYPs2WlK3NZyvRMDr18UflFsES&usp=drive_fs)
 7. Verify that all the auth methods work as shown in [THIS VIDEO](https://drive.google.com/open?id=1y-d14FE0ictvlYsb2wWanaFx368YrG1P&usp=drive_fs)
+
+#### Known issues / limitations with Authentication global actions:
+* Known issues:
+    * Can't specify an action (eg redirect) when running `resetPasswordForEmail` and `changePassword` global actions. This makes it hard to create a good user experience (see [issue 39](https://github.com/CallumBoase/plasmic-supabase/issues/39))
+    * In the authentcation global actions, you must use absolute URLs (eg `http://localhost:3000/signup-complete`) when defining URLs for email redirect, however relative URLs work for defining success redirect.  (see [issue 40](https://github.com/CallumBoase/plasmic-supabase/issues/40))
 
 ### 05 - Test that you can access your Supabase database
 In Plasmic studio:
@@ -240,37 +245,39 @@ In this section, we'll fix this issue so that we can define both public and logi
 1. In your cloned local version of your Plasmic project (see above):
     1. Stop your dev server if it's currently running (`cntrl + c` or `cmd + c` in terminal)
     2. Install the package `@supabase/ssr` by running in terminal
-    ```bash
-    npm install @supabase/ssr
-    ```
-    3. Add to the root directory a file called `middleware.ts` with the following content:
+        ```bash
+        npm install @supabase/ssr
+        ```
+    2. Add to the root directory a file called `middleware.ts` with the following content:
         <details>
           <summary><strong>Contents of middleware.ts</strong></summary>
           
           ```ts
-          import { createServerClient } from '@supabase/ssr'
-          import { NextResponse, type NextRequest } from 'next/server'
+          import { createServerClient } from "@supabase/ssr";
+          import { NextResponse, type NextRequest } from "next/server";
 
           // Define the route that contains your login page
-          const loginPage = '/login'
+          const loginPage = "/login";
 
           // Add any public (non-login protected) routes here
           // All other routes will be login protected
           // Important: plasmic-host and your login page must always be public
           const publicRoutes = [
-            '/',
-            '/login',
-            '/plasmic-host'
-          ]
+            "/", 
+            "/login", 
+            "/otp-request-confirmation",
+            "/signup",
+            "/signup-confirmation",
+            "/plasmic-host"
+          ];
 
           // Middleware function
           // This will run on every request to your app that matches the pattern at the bottom of this file
           // Adapted from @supabase/ssr docs https://supabase.com/docs/guides/auth/server-side/nextjs?queryGroups=router&router=app
           export async function middleware(request: NextRequest) {
-
             let supabaseResponse = NextResponse.next({
               request,
-            })
+            });
 
             //Create a new supabase client
             //Refresh expired auth tokens and set new cookies
@@ -280,20 +287,22 @@ In this section, we'll fix this issue so that we can define both public and logi
               {
                 cookies: {
                   getAll() {
-                    return request.cookies.getAll()
+                    return request.cookies.getAll();
                   },
                   setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                      request.cookies.set(name, value)
+                    );
                     supabaseResponse = NextResponse.next({
                       request,
-                    })
+                    });
                     cookiesToSet.forEach(({ name, value, options }) =>
                       supabaseResponse.cookies.set(name, value, options)
-                    )
+                    );
                   },
                 },
               }
-            )
+            );
 
             // IMPORTANT: Avoid writing any logic between createServerClient and
             // supabase.auth.getUser(). A simple mistake could make it very hard to debug
@@ -302,22 +311,21 @@ In this section, we'll fix this issue so that we can define both public and logi
             // Get details of the logged in user if present
             const {
               data: { user },
-            } = await supabase.auth.getUser()
-            
+            } = await supabase.auth.getUser();
+
             // Decide whether to redirect to the /login page or not
             // You can adapt this logic to suit your needs
 
             if (publicRoutes.includes(request.nextUrl.pathname) !== true && !user) {
-              // It's a login protected route but there's no logged in user. 
+              // It's a login protected route but there's no logged in user.
               // Respond by redirecting the user to the login page
-              const url = request.nextUrl.clone()
+              const url = request.nextUrl.clone();
               url.pathname = loginPage;
-              return NextResponse.redirect(url)
-
+              return NextResponse.redirect(url);
             } else {
-              // It's a public route, or it's a login protected route and there is a logged in user. 
+              // It's a public route, or it's a login protected route and there is a logged in user.
               // Proceed as normal
-              return supabaseResponse
+              return supabaseResponse;
             }
 
             // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
@@ -332,7 +340,6 @@ In this section, we'll fix this issue so that we can define both public and logi
             //    return myNewResponse
             // If this is not done, you may be causing the browser and server to go out
             // of sync and terminate the user's session prematurely!
-
           }
 
           //Only run middleware on requests that match this pattern
@@ -345,9 +352,10 @@ In this section, we'll fix this issue so that we can define both public and logi
               * - favicon.ico (favicon file)
               * Feel free to modify this pattern to include more paths.
               */
-              '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+              "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
             ],
-          }
+          };
+
           ```
         </details>
     4. Middleware is best tested in a production build because it behaves differently in development. Therefore build and start a local production version of your app by running:
@@ -409,3 +417,39 @@ You can also implement any other authorization logic you need, for example `role
 
 Further guidance on implementing role-based access control and similar may be added in a future update of this package.
 
+## Further Details & Notes
+
+### Plasmic-supabase behaviour
+
+#### Server-side rendering (Incremental Static Regeneration or ISR)
+When you include a `SupabaseProvider` component on a page of your app, and you're using the default Nextjs loader API implementation method with Plasmic, `plasmic-supabase` will try to pre-fetch your data server-side before rendering your page. If pre-fetching succeeds, the fetched data will be passed to the page as it renders and therefore the intial page HTML sent by the server can be more fully rendered. This is good for SEO purposes.
+
+The first time the page with the SupabaseProvider loads, you'll notice a slight delay as Plasmic fetches the data server-side before sending HTML with pre-rendered data to the browser.
+
+Subsequent visits to the same page will be faster, as Plasmic will serve stale data from the cache and then revalidate the data in the background on the client.
+
+If server-side fetch of data fails, there will not be any errors, and Plasmic will revert to client-side fetching of data. This means that the initial load of the page will not contain an data, and HTML sent by the server will never contain data.
+
+Client-side cache still operates on subequent visits to the page even if server-side fetch is not operating.
+
+This behaviour is achieved via Plasmic's `useMutablePlasmicQueryData` hook (which works the same as `usePlasmicQueryData`) as shown in the [Plasmic docs on fetching data from code components](https://docs.plasmic.app/learn/data-code-components/#fetching-data-from-your-code-components).
+
+Notes about this in Plasmic-supabase:
+1. Server-side prefetch runs in the catchall page's `getStaticProps` function. Therefore, server-side fetch of data that is only accessible to logged in users will never work (eg getting data from a database table where SELECT is disallowed by RLS policies). This is expected behaviour in this implementation of ISR.
+2. `SupabaseProvider` providers an advanced setting for disabling server-side fetching of data. 
+
+### `createClient` Supabase methods
+4x createClient methods are exported from `plasmic-supabase` to use in your project code if you require them.
+
+These can be imported like so
+
+```ts
+import { createStaticPropsClient } from 'plasmic-supabase';
+import { createComponentClient } from 'plasmic-supabase';
+import { createApiClient } from 'plasmic-supabase';
+import { createServerPropsClient } from 'plasmic-supabase';
+```
+
+These methods are created to match the [Supabase SSR Nextjs Pages router docs](https://supabase.com/docs/guides/auth/server-side/nextjs?queryGroups=router&router=pages) and can be used as if you defined them directly in your project utils.
+
+Note that the `createComponentClient` is slightly different to the official Supabase recommended version in order to work with Plasmic studio properly. See the [createClient.ts](https://github.com/CallumBoase/plasmic-supabase/blob/main/src/utils/supabase/component.ts) file for details.
