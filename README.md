@@ -417,11 +417,35 @@ You can also implement any other authorization logic you need, for example `role
 
 Further guidance on implementing role-based access control and similar may be added in a future update of this package.
 
-## Further Details & Notes
+## API Reference
+(This section is under construction)
 
-### Plasmic-supabase behaviour
+### Loading states
+SupabaseProvider components expose an `isLoading` and `isMutating` context values, which you can use to show the user when loading or mutation is occurring. 
 
-#### Server-side rendering (Incremental Static Regeneration or ISR)
+See [THIS VIDEO](https://drive.google.com/open?id=1-RQsiQ_9lABrUkPtWadN6kfbjopaCQXJ&usp=drive_fs) for a short demo.
+
+### SupabaseProvider: onSuccess and onError callbacks
+
+The `SupabaseProvider` component exposes `onSuccess` and `onError` interaction hooks, which you can use to run actions when any mutation that uses the `SupabaseProvider` succeeds, or when any error within the `SupabaseProvider` occurs.
+
+See [THIS VIDEO](https://drive.google.com/open?id=1bGywmDby4_5ABCIdyxx_qYJJhdXHpkeb&usp=drive_fs) for a short demo.
+
+### SupabaseProvider: running actions after a mutation
+
+After running a mutation action in the `SupabaseProvider` component, you can run additional actions. When the subsequent actions run & what data they have access to depends on how you configure the original mutation action.
+
+| Prop in SupabaseProvider mutation | What it does | 
+|------|-------------|
+| Return mutated row? | Whether to return the mutated row after the mutation has finished. This new row data then becomes available to subsequent actions (if they run after mutation has finished) | 
+| Run next action immediately without waiting for mutation to finish? | Whether to run subsequent actions immediately, without waiting for the mutation to finish. This means that the subsequent actions will NOT have access to the status (success or failure) of the mutation nor any returned data from it |
+
+See [THIS VIDEO](https://drive.google.com/open?id=17e0QtqPfX7ohmzjh7TboCcjO5KWlHMM-&usp=drive_fs) for a demo on how to configure and use actions after mutation.
+
+### Static site generation (SSG) & incremental static regeneration (ISR)
+
+The below section assumes you are using the default Nextjs Loader API implementation method with Plasmic.
+
 Plasmic-supabase fetches data using `useMutablePlasmicQueryData` hook (which works the same as `usePlasmicQueryData`) as shown in the [Plasmic docs on fetching data from code components](https://docs.plasmic.app/learn/data-code-components/#fetching-data-from-your-code-components).
 
 This means that incremental static regeneration (ISR) or static-site generation (SSG) will work as expected on pages that use a `SupabaseProvider` component (as long as the Supabase query allows for public access).
@@ -436,7 +460,7 @@ You don't need to change any settings in `plasmic-supabase` when working with Lo
 
 In advanced cases, you can disable server-side fetch and cache for a `SupabaseProvider` component by setting the `disableServerSideFetch` prop to `true`. 
 
-For a deep-dive into ISR / SSG with plasmic-supabase, see [THIS VIDEO](https://drive.google.com/open?id=15DSD0aEjvwuS1JWzmKVmYqcSJUwcmDyf&usp=drive_fs)
+For a deep-dive into ISR / SSG with plasmic-supabase in Plasmic with Nextjs Loader API implementation, see [THIS VIDEO](https://drive.google.com/open?id=15DSD0aEjvwuS1JWzmKVmYqcSJUwcmDyf&usp=drive_fs)
 
 ### `createClient` Supabase methods
 4x createClient methods are exported from `plasmic-supabase` to use in your project code if you require them.
