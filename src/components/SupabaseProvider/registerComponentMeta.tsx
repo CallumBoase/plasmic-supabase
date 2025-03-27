@@ -14,9 +14,9 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
           value:
             `INSTRUCTIONS FOR SUPABASE PROVIDER:
             1. Click the new SupabaseProvider component in the Component tree (LHS of screen) to open it's settings
-            2. In settings on RHS of screen, choose a globally unique "Query name" (eg "/pagename/staff")
+            2. In settings on right-hand-side of your screen, choose a globally unique "Query name" (eg "/pagename/staff")
             3. Enter the correct "table name" from Supabase (eg "staff")
-            4. On LHS of screen, change the name of SupabaseProvider to match the query name
+            4. On the left-hand-side of your screen, change the name of SupabaseProvider to match the query name
             5. Delete this placeholder text (from "children" slot). Then add components to "children" and use the dynamic data as you wish! :)`,
         },
       ],
