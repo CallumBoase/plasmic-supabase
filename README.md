@@ -422,21 +422,21 @@ Further guidance on implementing role-based access control and similar may be ad
 ### Plasmic-supabase behaviour
 
 #### Server-side rendering (Incremental Static Regeneration or ISR)
-When you include a `SupabaseProvider` component on a page of your app, and you're using the default Nextjs loader API implementation method with Plasmic, `plasmic-supabase` will try to pre-fetch your data server-side before rendering your page. If pre-fetching succeeds, the fetched data will be passed to the page as it renders and therefore the intial page HTML sent by the server can be more fully rendered. This is good for SEO purposes.
+Plasmic-supabase fetches data using `useMutablePlasmicQueryData` hook (which works the same as `usePlasmicQueryData`) as shown in the [Plasmic docs on fetching data from code components](https://docs.plasmic.app/learn/data-code-components/#fetching-data-from-your-code-components).
 
-The first time the page with the SupabaseProvider loads, you'll notice a slight delay as Plasmic fetches the data server-side before sending HTML with pre-rendered data to the browser.
+This means that incremental static regeneration (ISR) or static-site generation (SSG) will work as expected on pages that use a `SupabaseProvider` component (as long as the Supabase query allows for public access).
 
-Subsequent visits to the same page will be faster, as Plasmic will serve stale data from the cache and then revalidate the data in the background on the client.
+In simplified terms, nextjs will fetch data from Supabase & cache it server-side. This cached data means that the server can send HTML filled with dynamic data when a user (or a search engine) requests a particular page of your app.
 
-If server-side fetch of data fails, there will not be any errors, and Plasmic will revert to client-side fetching of data. This means that the initial load of the page will not contain an data, and HTML sent by the server will never contain data.
+All of this is good for SEO on public-facing pages.
 
-Client-side cache still operates on subequent visits to the page even if server-side fetch is not operating.
+Server-side fetch and cache of data will only work for Supabase queries where RLS policies allow non-login-protected access because server-side fetch and cache operates via the catchall page's `getStaticProps` function, which does not have access to the logged in user's session.
 
-This behaviour is achieved via Plasmic's `useMutablePlasmicQueryData` hook (which works the same as `usePlasmicQueryData`) as shown in the [Plasmic docs on fetching data from code components](https://docs.plasmic.app/learn/data-code-components/#fetching-data-from-your-code-components).
+You don't need to change any settings in `plasmic-supabase` when working with Login-protected data, because the `useMutablePlasmicQueryData` hook (when run server-side) will silently fail, leading to no data being cached server-side. However, data will still be fetched client-side as expected.
 
-Notes about this in Plasmic-supabase:
-1. Server-side prefetch runs in the catchall page's `getStaticProps` function. Therefore, server-side fetch of data that is only accessible to logged in users will never work (eg getting data from a database table where SELECT is disallowed by RLS policies). This is expected behaviour in this implementation of ISR.
-2. `SupabaseProvider` providers an advanced setting for disabling server-side fetching of data. 
+In advanced cases, you can disable server-side fetch and cache for a `SupabaseProvider` component by setting the `disableServerSideFetch` prop to `true`. 
+
+For a deep-dive into ISR / SSG with plasmic-supabase, see [THIS VIDEO](https://drive.google.com/open?id=15DSD0aEjvwuS1JWzmKVmYqcSJUwcmDyf&usp=drive_fs)
 
 ### `createClient` Supabase methods
 4x createClient methods are exported from `plasmic-supabase` to use in your project code if you require them.
