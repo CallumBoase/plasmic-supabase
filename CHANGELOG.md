@@ -9,7 +9,7 @@ This release contains breaking changes:
         * Data is now fetched via `useMutablePlasmicQueryData` hook instead of `useSWR`. 
         * This means that the `SupabaseProvider` (when used with Plasmic's Loader API Nextjs Pages router implementation) will try to fetch data server-side & cache it server-side by default. 
         * This can be disabled by setting the `disableServerSideFetch` prop of the `SupabaseProvider` component to `true`. 
-        * See [README SSG/ISR section](https://github.com/CallumBoase/plasmic-supabase/blob/main/README.md#static-site-generation-ssg--incremental-static-regeneration-isr) for more details.
+        * See [README SSG/ISR section](README.md#static-site-generation-ssg--incremental-static-regeneration-isr) for more details.
         * Address issue [6](https://github.com/CallumBoase/plasmic-supabase/issues/6)
     * **Initial sort order replaced with orderBy prop:** 
         * The `initialSortOrder` prop of the `SupabaseProvider` component has been replaced with the `orderBy` prop
@@ -19,10 +19,10 @@ This release contains breaking changes:
     * **Loading, error & no data slots removed:** 
         * The `Loading`, `Error` and `NoData` slots of the `SupabaseProvider` component have been removed. 
         * These were previously used to display loading states, error states and no data states respectively. 
-        * You can now use the `isLoading` and `isError` context values to display loading states, (see [README on loading states](https://github.com/CallumBoase/plasmic-supabase/blob/main/README.md#loading-states) for more details) and you can count the data within the `SupabaseProvider` component's data to determine if there is data to display.
+        * You can now use the `isLoading` and `isError` context values to display loading states, (see [README on loading states](README.md#loading-states) for more details) and you can count the data within the `SupabaseProvider` component's data to determine if there is data to display.
         * Address issue [27](https://github.com/CallumBoase/plasmic-supabase/issues/27)
     * **Prop `generateRandomErrors` replaced by 2 error-simulation props:** The prop `generateRandomErrors` has been replaced by 2 new props: `simulateRandomFetchErrors` and `simulateRandomMutationErrors`. These allow you to simulate errors with better control.
-    * **mutation errors aren't shown in the SupabaseProvider's data:** Previously, mutation errors would be shown in the `SupabaseProvider`'s data. This was note a robust pattern so has been removed. Instead, you can use the `onError` prop to define an action to run when an error occurs, or you can add actions directly after the mutation, filtered by the mutation's status. See [README on success and on error callbacks](https://github.com/CallumBoase/plasmic-supabase/blob/main/README.md#supabaseprovider-onsuccess-and-onerror-callbacks) and [README on running actions after a mutation](https://github.com/CallumBoase/plasmic-supabase/blob/main/README.md#running-actions-after-a-mutation) for more details and examples.
+    * **mutation errors aren't shown in the SupabaseProvider's data:** Previously, mutation errors would be shown in the `SupabaseProvider`'s data. This was note a robust pattern so has been removed. Instead, you can use the `onError` prop to define an action to run when an error occurs, or you can add actions directly after the mutation, filtered by the mutation's status. See [README on success and on error callbacks](README.md#supabaseprovider-onsuccess-and-onerror-callbacks) and [README on running actions after a mutation](README.md#supabaseprovider-running-actions-after-a-mutation) for more details and examples.
     * **subsequent actions after mutations have different behaviour:**: 
         * Old behaviour: actions after a mutation action would run immedatiely without waiting for the mutation to finish. Subsequent actions would not have access to the status (success or failure) or data from the mutation. There was no way to wait for the mutation to finish before running subsequent actions.
         * New behaviour: you have options
@@ -34,7 +34,7 @@ This release contains breaking changes:
     * **`updateUserPassword` global action:** Will refresh the logged in user details automatically after the mutation finishes. This is unlikely to cause issues in existing apps but could be considered a breaking change
 * **Other breaking changes:**
     * **`Bundling method causing imports of non-exported utilities to break`:** `plasmic-supabase` now uses a different bundling method taken from Plasmic's implementation of code components. If you were importing utilities beyond the main components from `plasmic-supabase` (for example the supabase `createClient` methods from `plasmic-supabase/utils/supabase/...`), these will no longer work.
-        * For supabase create client methods, you can now import as shown in the [README create client supabase methods]((https://github.com/CallumBoase/plasmic-supabase/blob/main/README.md#createclient-supabase-methods)        
+        * For supabase create client methods, you can now import as shown in the [README create client supabase methods](README.md#createclient-supabase-methods)        
 
 ### Non-breaking changes
 * **Supabase `createClient` methods use latest version of `@supabase/ssr` & suggested methods:** The 4x `createClient` methods for nextjs pages router and now created using the latest version of the `@supabase/ssr` package and the methods for getting and setting cookies have been updated to match the latest supabase docs (using `getAll` and `setAll` instead of `get`, `set` and `delete`). This should not impact existing projects.
