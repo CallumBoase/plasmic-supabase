@@ -1,6 +1,6 @@
 {
   "name": "plasmic-supabase",
-  "version": "0.5.0-alpha-43",
+  "version": "0.5.0-alpha-44",
   "description": "Code components to use Supabase as a backend for a Plasmic app",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

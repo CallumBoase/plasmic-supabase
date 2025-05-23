@@ -123,20 +123,19 @@ export function useOptimisticOperations({
       }
 
       const newData = {
-        data: clientSideOrderBy(
-          memoizedOrderBy,
-          //Filter out the row based on the uniqueIdentifierField
+        //Filter out the row based on the uniqueIdentifierField
+        //Note that we do not run a client-side orderBy here because deletion won't lead to a need to re-sort
+        data:
           currentData.data?.filter(
             (row) => row[uniqueIdentifierField] !== uniqueIdentifierVal
-          ) || []
-        ),
+          ) || [],
         //Decrement the count if count is enabled
         count: returnCount !== "none" ? (currentData.count || 0) - 1 : null,
       };
 
       return newData;
     },
-    [returnCount, memoizedOrderBy, uniqueIdentifierField]
+    [returnCount, uniqueIdentifierField]
   );
 
   const replaceDataOptimistically = useCallback(

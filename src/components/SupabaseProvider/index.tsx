@@ -187,7 +187,6 @@ export const SupabaseProvider = forwardRef<Actions, SupabaseProviderProps>(
         columns,
         JSON.stringify(memoizedFilters),
         JSON.stringify(memoizedOrderBy),
-        orderBy,
         limit,
         offset,
         returnCount,
