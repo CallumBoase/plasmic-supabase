@@ -293,7 +293,7 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
       description: 'Run a RPC (function) in Supabase',
       argTypes: [
         { name: "rpcName", displayName: 'Name of the RPC', type: "string" },
-        { name: "dataForSupabase", displayName: 'Data for to pass to the RPC', type: "object"},
+        { name: "dataForSupabase", displayName: 'Data (object) to pass to the RPC', type: "object"},
         { name: "returnImmediately", displayName: 'Run next action immediately without waiting for mutation to finish?', type: "boolean"},
         { 
           name: "optimisticOperation", 
