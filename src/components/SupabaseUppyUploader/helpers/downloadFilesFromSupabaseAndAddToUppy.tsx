@@ -1,7 +1,7 @@
 import downloadFileFromSupabaseStorage from "./downloadFileFromSupabaseStorage";
 import Uppy from "@uppy/core";
 import blobToBase64 from "../../../utils/blobToBase64";
-import getFileNameFromPath from "../../../utils/getFileNameFromPath";
+import getFileNameFromPath from "./getFileNameFromPath";
 
 //Helper function to download files from Supabase storage and add them to an Uppy instance
 

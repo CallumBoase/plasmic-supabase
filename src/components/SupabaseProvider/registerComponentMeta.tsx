@@ -1,12 +1,26 @@
 import { CodeComponentMeta } from "@plasmicapp/host";
 import { SupabaseProviderProps } from ".";
 
-//Component metadata for registration in Plasmic
 export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
   name: "SupabaseProvider",
   importPath: "./index",
   providesData: true,
   props: {
+    children: {
+      type: "slot",
+      defaultValue: [
+        {
+          type: "text",
+          value:
+            `INSTRUCTIONS FOR SUPABASE PROVIDER:
+            1. Click the new SupabaseProvider component in the Component tree (LHS of screen) to open it's settings
+            2. In settings on right-hand-side of your screen, choose a globally unique "Query name" (eg "/pagename/staff")
+            3. Enter the correct "table name" from Supabase (eg "staff")
+            4. On the left-hand-side of your screen, change the name of SupabaseProvider to match the query name
+            5. Delete this placeholder text (from "children" slot). Then add components to "children" and use the dynamic data as you wish! :)`,
+        },
+      ],
+    },
     queryName: {
       type: "string",
       required: true,
@@ -125,154 +139,175 @@ export const SupabaseProviderMeta : CodeComponentMeta<SupabaseProviderProps> = {
       description:
         "Filters to execute during the query. Acceptable values are eq, neq, gt, lt, gte, lte.",
     },
-    initialSortField: "string",
-    initialSortDirection: {
+    orderBy: {
+      type: "array",
+      itemType: {
+        type: "object",
+        fields: {
+          fieldName: "string",
+          direction: {
+            type: "choice",
+            options:  [
+              {label: "Ascending",value: "asc"}, 
+              {label: "Descending",value: "desc"}
+            ],
+          },
+        },
+      },
+      displayName: "Order by",
+      description:
+        "Columns to order the results by during the query.",
+    },
+    limit: {
+      type: "number",
+      step: 1,
+      min: 0,
+      required: false,
+      description: 'Number of records to fetch',
+      advanced: true,
+    },
+    offset: {
+      type: "number",
+      step: 1,
+      min: 0,
+      required: false,
+      description: 'Number of records to skip',
+      advanced: true,
+    },
+    returnCount: {
       type: "choice",
-      options: ["asc", "desc"],
+      options: ["none", "exact", "planned", "estimated"],
+      defaultValue: "none",
+      required: false,
+      description: 'Count algorithm to use to count rows in the table or view. `"none"`: Don\'t return a count. `"exact"`: Exact but slow count algorithm. Performs a `COUNT(*)` under the hood. `"planned"`: Approximated but fast count algorithm. Uses the Postgres statistics under the hood. `"estimated"`: Uses exact count for low numbers and planned count for high numbers.',
+      advanced: true,
     },
     uniqueIdentifierField: {
       type: "string",
       required: true,
-      defaultValue: "id",
+      defaultValue: "id"
     },
-    disableFetchData: {
-      type: 'boolean',
-      advanced: true,
-      description: 'Disable data fetching. Useful for when you want to just use element actions without fetching data first, eg to use the SupabaseProvider to add a row on a page where you are not displaying other rows.'
+    onError: {
+      type: "eventHandler",
+      argTypes: [{name: 'supabaseProviderError', type: 'object'}],
+      required: false,
+      description: 'Event handler for when an error occurs with fetch or mutate of data. Within this handler you can access the error that occured via the variable "supabaseProviderError"'
     },
-    hideDefaultErrors: {
-      type: 'boolean',
-      advanced: true,
-      description: 'Hide default errors so you can use the $ctx values yourself to show custom error messages'
+    onMutateSuccess: {
+      type: "eventHandler",
+      argTypes: [{name: 'mutateResult', type: 'object'}],
+      required: false,
+      description: 'Event handler for when a mutation is successful. Within this handler you can access the result of the mutation via the variable "mutateResult"'
     },
-    forceLoading: {
+    skipServerSidePrefetch: {
       type: "boolean",
-      advanced: true,
+      required: false,
+      defaultValue: false,
+      description: `
+        In the standard configuration of Plasmic (NextJS + Loader API), Plasmic will prefetch data from Supabase on the server before the page containing the SupabaseProvider is rendered (if data is not in cache).
+        If data is in cache, the stale data will be used (no server-side fetch), before the client-side refetch is triggered.
+        This behaviour is normally desirable because of the SEO benefits.
+        However, if you wish to disable server-side prefetch, you can set this prop to TRUE.`,
+      advanced: true
     },
-    forceValidating: {
+    addDelayForTesting: {
       type: "boolean",
-      advanced: true,
+      required: false,
+      defaultValue: false,
+      description: `
+        Whether to add a 1 second delay when fetching or mutating data from Supabase. Useful for testing.`,
+      advanced: true
     },
-    forceNoData: {
+    simulateRandomFetchErrors: {
       type: "boolean",
-      advanced: true,
+      required: false,
+      defaultValue: false,
+      description: `
+        Whether to simulate random fetch errors when fetching data from Supabase. Useful for testing.`,
+      advanced: true
     },
-    forceQueryError: {
+    simulateRandomMutationErrors: {
       type: "boolean",
-      advanced: true,
-    },
-    forceMutationError: {
-      type: "boolean",
-      advanced: true,
-    },
-    generateRandomErrors: {
-      type: "boolean",
-      advanced: true,
-    },
-    loading: {
-      type: "slot",
-      defaultValue: {
-        type: "text",
-        value: "Loading...",
-      },
-    },
-    validating: {
-      type: "slot",
-      defaultValue: {
-        type: "text",
-        value: "Validating...",
-      },
-    },
-    noData: {
-      type: "slot",
-      defaultValue: {
-        type: "text",
-        value: "No data",
-      },
-    },
-    children: {
-      type: "slot",
-      defaultValue: [
-        {
-          type: "text",
-          value:
-            `INSTRUCTIONS FOR SUPABASE PROVIDER:
-            1. Click the new SupabaseProvider component in the Component tree (LHS of screen) to open it's settings
-            2. In settings on RHS of screen, choose a globally unique "Query name" (eg "/pagename/staff")
-            3. Enter the correct "table name" from Supabase (eg "staff")
-            4. On LHS of screen, change the name of SupabaseProvider to match the query name
-            5. Delete this placeholder text (from "children" slot). Then add components to "children" and use the dynamic data as you wish! :)`,
-        },
-      ],
+      required: false,
+      defaultValue: false,
+      description: `
+        Whether to simulate random mutation errors when mutating data in Supabase. Useful for testing.`,
+      advanced: true
     },
   },
   refActions: {
-    sortRows: {
-      description: "sort rows",
-      argTypes: [
-        { name: "sortField", type: "string" },
-        { name: "sortDirection", type: "string" },
-      ],
-    },
-    refetchData: {
-      description: "refetch rows from the database",
-      argTypes: [],
-    },
-    deleteRow: {
-      description: "delete a row by ID",
-      argTypes: [{ name: "ID", type: "string", displayName: "Id / unique identifier of the row to delete" }],
-    },
     addRow: {
-      description: "add a row",
+      description: "Add a row to the database",
       argTypes: [
         { name: "rowForSupabase", type: "object", displayName: "Row object to send to Supabase" },
-        { name: "optimisticRow", type: "object", displayName: "Optimistic new row object (optional)"},
+        { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
+        { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
+        { name: "optimisticRow", type: "object", displayName: "Optimistic new row object (optional)" },
+        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to pass to onMutateSuccess and onError (optional)" },
       ],
     },
     editRow: {
-      description: "edit row",
+      description: "Edit a row in the database",
       argTypes: [
-        { name: "rowForSupabase", type: "object", displayName: "Row object to send to Supabase"},
-        { name: "optimisticRow", type: "object", displayName: "Optimistic edited row object (optional)"},
+        { name: "rowForSupabase", type: "object", displayName: "Edited row object to send to Supabase. Must include the unique identifier field (eg id)" },
+        { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
+        { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
+        { name: "optimisticRow", type: "object", displayName: "Optimistic edited row object (optional). Must include the unqiue identifier field (eg id)" },
+        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to pass to onMutateSuccess and onError (optional)" },
+      ],
+    },
+    deleteRow: {
+      description: "Delete a row from the database",
+      argTypes: [
+        { name: "uniqueIdentifierVal", type: "string", displayName: "Id / unique identifier of the row to delete" },
+        { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
+        { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
+        { name: "shouldRunOptimistically", type: "boolean", displayName: "Delete row optimistically?" },
+        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to pass to onMutateSuccess and onError (optional)" },
       ],
     },
     flexibleMutation: {
-      description: "perform a flexible mutation",
+      description: "Perform a flexible mutation in the database",
       argTypes: [
         { name: "tableName", type: "string", displayName: "Table name (to run mutation on)"},
-        { name: "operation", type: "string", displayName: "Operation (insert / update / upsert / delete)" },
+        { name: "operation", type: "string", displayName: "Operation to run in the database (insert / update / upsert / delete)" },
         { name: "dataForSupabase", type: "object", displayName: "Data for Supabase API call (leave blank for delete)" },
         { 
           name: "filters", 
           type: "object", 
           displayName: "Filters for update/delete (array of objects eg {fieldName: 'id', operator: 'eq', value: 1, value2: null})" 
         },
+        { name: "shouldReturnRow", type: "boolean", displayName: "Return mutated row? (Returns null if false)" },
+        { name: "returnImmediately", type: "boolean", displayName: "Run next action immediately without waiting for mutation to finish?" },
         { 
           name: "optimisticOperation", 
           type: "string", 
           displayName: "Optimistic operation (addRow / editRow / deleteRow / replaceData) (optional)",
         },
-        { name: "optimisticData", type: "object", displayName: "Data for optimistic operation (optional)" },
+        { name: "optimisticData", type: "object", displayName: "Data for optimistic operation  (if doing). For addRow / editRow / deleteRow: must be an object. For editRow / deleteRow the unique identifier field must be present. For replaceData must be array of objects." },
+        { name: "optimisticCount", type: "number", displayName: "Optimistic count value (optional, if doing replaceData optimistic operation)" },
+        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to onMutateSuccess and onError (optional)" },
       ],
     },
     runRpc: {
-      description: 'RPC for add row',
+      description: 'Run a RPC (function) in Supabase',
       argTypes: [
         { name: "rpcName", displayName: 'Name of the RPC', type: "string" },
-        { name: "dataForSupabase", displayName: 'Data for Supabase API call', type: "object"},
+        { name: "dataForSupabase", displayName: 'Data (object) to pass to the RPC', type: "object"},
+        { name: "returnImmediately", displayName: 'Run next action immediately without waiting for mutation to finish?', type: "boolean"},
         { 
-          //Choose the optimistic operation to perform
-          //Done in plain text since "choice" type doesn't work in refActions
           name: "optimisticOperation", 
-          displayName: 'Optimistic operation (addRow / editRow / deleteRow / replaceData) (optional)', 
-          type: "string" 
+          type: "string", 
+          displayName: "Optimistic operation (addRow / editRow / deleteRow / replaceData) (optional)",
         },
-        { name: "optimisticData", displayName: 'Data for optimistic operation (optional)', type: 'object'},
+        { name: "optimisticData", type: "object", displayName: "Data for optimistic operation  (if doing). For addRow / editRow / deleteRow: must be an object. For editRow / deleteRow the unique identifier field must be present. For replaceData must be array of objects." },
+        { name: "optimisticCount", type: "number", displayName: "Optimistic count value (optional, if doing replaceData optimistic operation)" },
+        { name: "customMetadata", type: "object", displayName: "Custom metadata object to pass to onMutateSuccess and onError (optional)" },
       ]
     },
-    clearError: {
-      description: "clear the latest error message",
+    refetchRows: {
+      description: "refetch rows from the database",
       argTypes: [],
-    },
-  },
-}
+    }
+  }
+};

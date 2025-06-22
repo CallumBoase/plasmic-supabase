@@ -1,35 +1,62 @@
 {
   "name": "plasmic-supabase",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Code components to use Supabase as a backend for a Plasmic app",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "module": "dist/index.mjs",
   "files": [
     "dist"
   ],
+  "size-limit": [
+    {
+      "path": "dist/index.js",
+      "limit": "10 KB"
+    },
+    {
+      "path": "dist/index.mjs",
+      "limit": "10 KB"
+    }
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "clean": "rimraf dist",
-    "build": "npm run clean && tsc",
-    "type-check": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "build": "tsup-node src/index.tsx --dts --format esm,cjs --target es2019",
+    "test": "TEST_CWD=`pwd` yarn --cwd=../.. test --passWithNoTests",
+    "prepublishOnly": "npm run build",
+    "size": "size-limit",
+    "analyze": "size-limit --why"
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^7.0.8",
+    "@types/cookie": "^0.6.0",
+    "@types/dlv": "^1.1.2",
+    "@types/lodash": "^4.17.14",
+    "@types/node": "^17.0.14",
+    "@types/react": "^18.2.78",
+    "@types/react-dom": "^18.2.25",
+    "@types/uuid": "^9.0.8",
+    "size-limit": "^7.0.8",
+    "tslib": "^2.3.1",
+    "tsup": "^7.2.0",
+    "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@plasmicapp/data-sources": "^0.1.143",
     "cookie": "^0.6.0",
+    "lodash": "^4.17.21",
     "use-deep-compare": "^1.2.1",
     "uuid": "^9.0.1"
   },
   "peerDependencies": {
-    "@supabase/ssr": "^0.4.0",
-    "@supabase/supabase-js": "^2.44.2",
-    "@plasmicapp/loader-nextjs": "^1.0.371",
+    "@plasmicapp/host": "^1.0.208",
+    "@plasmicapp/query": "^0.1.79",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.10",
     "@uppy/dashboard": "^3.7.5",
     "@uppy/drag-drop": "^3.0.3",
     "@uppy/file-input": "^3.1.0",
     "@uppy/progress-bar": "^3.1.0",
     "@uppy/react": "^3.2.2",
     "@uppy/tus": "^3.5.3",
+    "next": "^14.2.0",
     "react": "^18",
     "react-dom": "^18"
   },
@@ -42,13 +69,5 @@
   "bugs": {
     "url": "https://github.com/CallumBoase/plasmic-supabase/issues"
   },
-  "homepage": "https://github.com/CallumBoase/plasmic-supabase#readme",
-  "devDependencies": {
-    "@types/cookie": "^0.6.0",
-    "@types/react": "^18.2.78",
-    "@types/react-dom": "^18.2.25",
-    "@types/uuid": "^9.0.8",
-    "rimraf": "^5.0.5",
-    "typescript": "^5.4.5"
-  }
+  "homepage": "https://github.com/CallumBoase/plasmic-supabase#readme"
 }

@@ -1,4 +1,4 @@
-import createClient from "../utils/supabase/component";
+import createClient from "../../../utils/supabase/component";
 
 //Helper function to the get a bearer token to use with supabase
 //Either the logged in user's bearer token or the anon token if no user logged in

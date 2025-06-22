@@ -33,12 +33,69 @@ Support for NextJS pages router with codegen will be added later.
 This sections covers how to create a new Plasmic project and make the `plasmic-supabase` component available in the project.
 
 After completing this section, you will be able to use the `plasmic-supabase` components in your Plasmic project to:
-  * Log a user in & out via Supabase auth
+  * Perform user related actions in Supabase auth:
+    * Sign up a user
+    * Confirm a user's email address
+    * Log a user in via email/password
+    * Log a user in via magic link
+    * Log a user out
+    * Allow user to request a password reset link
+    * Allow a logged in user to update their password
+    * Allow a logged in user to update details: email, phone, password, user metadata
   * CRUD data from your supabase database & supabase storage (including tables/buckets that have RLS policies enabled that limit actions based on logged in user)
 
 However, you will **NOT** yet be able to limit access to pages based on user authentication status. This is covered in the next section.
 
-### 01 - Create new Plasmic Project 
+### 01 - Create a new Supabase project
+1. Visit supabase.com
+2. Create a new project
+3. Once the new project is ready, click "Connect" and then "App frameworks"
+4. Copy the NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY values for later use
+5. Back in your main project dashboard, in the left sidebar, click "Authentication" then "Emails"
+6. Update each of the following emails to the content shown below:
+    <details>
+        <summary>Confirm signup</summary>
+        
+    ```md    
+      <h2>Confirm your signup</h2>
+
+      <p>Follow this link to confirm your user:</p>
+      <p><a href="{{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next={{ .RedirectTo }}">Confirm your email</a></p>
+    ```
+    </details>
+    <details>
+        <summary>Magic Link</summary>
+        
+    ```md    
+      <h2>Magic Link</h2>
+
+      <p>Follow this link to login:</p>
+      <!-- <p><a href="{{ .ConfirmationURL }}">Log In</a></p> -->
+      <p><a href="{{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=magiclink&next={{ .RedirectTo }}">Log In</a></p>
+    ```
+    </details>
+    <details>
+        <summary>Change Email Address</summary>
+        
+    ```md    
+      <h2>Confirm Change of Email</h2>
+
+      <p>Follow this link to confirm the update of your email from {{ .Email }} to {{ .NewEmail }}:</p> 
+      <p><a href="{{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=email_change&next={{ .RedirectTo }}">Change Email</a></p>
+    ```
+    </details>
+    <details>
+        <summary>Reset Password</summary>
+        
+    ```md    
+      <h2>Reset Password</h2>
+
+      <p>Follow this link to reset the password for your user:</p>
+      <p><a href="{{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next={{ .RedirectTo }}">Reset Password</a></p>
+    ```
+    </details>
+
+### 02 - Create new Plasmic Project 
 In the Plasmic web interface:
 1. Create a new Plasmic app
 2. Rename your app
@@ -46,7 +103,7 @@ In the Plasmic web interface:
 4. Add a "Push to Github" step, publishing to a new repo, nextjs, loader (recommended) method, typescript
 5. Click "publish" and wait for the build to complete
 
-### 02 - Download & modify your project code:
+### 03 - Download & modify your Plasmic project code:
 On your local machine:
 1. Clone the repo you just created to your local machine
 2. In terminal, run `npm install` to install plasmic & it's dependencies
@@ -57,23 +114,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 4. `npm install plasmic-supabase` to install this package
-5. Open `./plasmic-init.ts`. It should look like this to start with (default Plasmic comments removed for brevity)
-```ts
-import { initPlasmicLoader } from "@plasmicapp/loader-nextjs";
-
-export const PLASMIC = initPlasmicLoader({
-  projects: [
-    {
-      id: "your-plasmic-project-id",
-      token: "your-plasmic-project-token",
-    },
-  ],
-
-  preview: false,
-});
-
-```
-6. Modify `plasmic-init.ts` to import components from `plasmic-supabase`
+5. Open `./plasmic-init.ts` and modify it to look like this:
 ```ts
 import { initPlasmicLoader } from "@plasmicapp/loader-nextjs";
 import { 
@@ -121,7 +162,45 @@ function MyApp({ Component, pageProps }: AppProps) {
 
 export default MyApp;
 ```
-8. In terminal: `npm run dev` to start your Dev server
+8. In `./pages/api` directory and a new folder called `auth` and then a new file called `confirm.ts` with the following content. (Note that we modify [the official supabase method](https://supabase.com/docs/guides/auth/server-side/nextjs?queryGroups=router&router=pages) here by importing `createApiClient` from `plasmic-supabase`).
+```ts
+import { type EmailOtpType } from '@supabase/supabase-js'
+import type { NextApiRequest, NextApiResponse } from 'next'
+
+import { createApiClient as createClient } from 'plasmic-supabase'
+
+function stringOrFirstString(item: string | string[] | undefined) {
+  return Array.isArray(item) ? item[0] : item
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET') {
+    res.status(405).appendHeader('Allow', 'GET').end()
+    return
+  }
+
+  const queryParams = req.query
+  const token_hash = stringOrFirstString(queryParams.token_hash)
+  const type = stringOrFirstString(queryParams.type)
+
+  let next = '/error'
+
+  if (token_hash && type) {
+    const supabase = createClient(req, res)
+    const { error } = await supabase.auth.verifyOtp({
+      type: type as EmailOtpType,
+      token_hash,
+    })
+    if (error) {
+      console.error(error)
+    } else {
+      next = stringOrFirstString(queryParams.next) || '/'
+    }
+  }
+  res.redirect(next)
+}
+```
+9. In terminal: `npm run dev` to start your Dev server
 
 
 ### 03 - Configure custom app host 
@@ -129,35 +208,22 @@ In Plasmic studio:
 1. Configure you Custom App host to point to http://localhost:3000/plasmic-host
 2. When the page reloads, the registered components should be available in Add component -> Custom Components. You'll also see global actions available for login/logout etc & a global context value of logged in SupabaseUser.
 
-### 04 - Add login and logout functionality
+### 04 - Add basic authentication pages
 In Plasmic studio:
-1. Create a login page
+1. Create a login page (with forgot password & magic link options)
     * Create page at path `/login`. 
-    * Add a form component to the page
-    * Configure the form fields so it contains an email and password input
-    * In Plasmic studio, top right next to the triangle button, click "view" and select "Turn off design mode"
-    * Turn on `Interactive` mode in the studio
-    * Fill in the form with a valid email & password of a Supabase user in your Supabase project but **don't submit it yet**
-    * Attach an interaction to the form for `onSubmit`: 
-        * Action 1: `SupabaseUserGlobalContext -> login`. Fill in the fields that appear (`Email` and `Password`) with the dynamic values from the form: `form.value.email` & `form.value.password`. Also fill in the `Success redirect` field with the home page `/`
-    * Close the form configuration popups and submit the login form with a valid email & password. You should have logged in but won't yet be able to tell.
-2. Check that login worked by showing logged in user email on the home page
-    * Ensure you've already logged in while viewing your app in Plasmic studio (see previous step 2) 
-    * Go to your project's home `/` page using the page dropdown in Plasmic studio.
-    * Click the "refresh arena" button (because Plasmic studio caches page context between visits so login status sometimes will not be available until you refresh the arena)
-    * Add a text element to the page
-    * Assign dynamic content to the text element and pick `SupabaseUser.user.email` with fallback "You are not logged in"
-    * If login succeeded in step 2, you should see the logged in user's email address on the page
-3. Add a logout button to the home page
-    * Add a button to the homepage of your app
-    * Change the button text to "Logout"
-    * Attach an interaction to the button: `onClick`: 
-        * Action 1: `SupabaseUserGlobalContext -> logout`. Leave the `Success redirect` field blank
-4. Check that you can log out
-    * Make sure you are currently logged in (see step 1 & 2) and have added a logout button to the homepage (see step 3)
-    * Turn on `Interactive` mode in the studio
-    * Click the logout button
-    * If logout succeeded, you should no longer see the logged in user's email address on the page. Instead you should see the fallback content from your text block "You are not logged in"
+    * Configure the login page as shown in [THIS VIDEO](https://drive.google.com/open?id=1HooSVuOVig_oixISwElIkfiHiFTIJ96u&usp=drive_fs)
+2. Create a signup page as shown in [THIS VIDEO](https://drive.google.com/open?id=1s1IMur6h8SE7cSMZtYTu_1Quw84KfRbJ&usp=drive_fs)
+3. Create a signup confirmation and signup complete page as shown in [THIS VIDEO](https://drive.google.com/open?id=1Xur8wBaUKtrgJY5EUGcgPowY19V7yhNX&usp=drive_fs)
+4. Create an OTP request confirmation page as shown in [THIS VIDEO](https://drive.google.com/open?id=1Xc7uNUMMhbF3N6EvNJGXzZud2NW6QIXY&usp=drive_fs)
+5. Create a change password page as shown in [THIS VIDEO](https://drive.google.com/open?id=1zLcD6p_slzwih-bsItS1vqPExjFlyYsO&usp=drive_fs)
+6. Create a home page that shows logged in user details and a logout button as shown in [THIS VIDEO](https://drive.google.com/open?id=1N28893FYPs2WlK3NZyvRMDr18UflFsES&usp=drive_fs)
+7. Verify that all the auth methods work as shown in [THIS VIDEO](https://drive.google.com/open?id=1y-d14FE0ictvlYsb2wWanaFx368YrG1P&usp=drive_fs)
+
+#### Known issues / limitations with Authentication global actions:
+* Known issues:
+    * Can't specify an action (eg redirect) when running `resetPasswordForEmail` and `changePassword` global actions. This makes it hard to create a good user experience (see [issue 39](https://github.com/CallumBoase/plasmic-supabase/issues/39))
+    * In the authentcation global actions, you must use absolute URLs (eg `http://localhost:3000/signup-complete`) when defining URLs for email redirect, however relative URLs work for defining success redirect.  (see [issue 40](https://github.com/CallumBoase/plasmic-supabase/issues/40))
 
 ### 05 - Test that you can access your Supabase database
 In Plasmic studio:
@@ -179,37 +245,39 @@ In this section, we'll fix this issue so that we can define both public and logi
 1. In your cloned local version of your Plasmic project (see above):
     1. Stop your dev server if it's currently running (`cntrl + c` or `cmd + c` in terminal)
     2. Install the package `@supabase/ssr` by running in terminal
-    ```bash
-    npm install @supabase/ssr
-    ```
-    3. Add to the root directory a file called `middleware.ts` with the following content:
+        ```bash
+        npm install @supabase/ssr
+        ```
+    2. Add to the root directory a file called `middleware.ts` with the following content:
         <details>
           <summary><strong>Contents of middleware.ts</strong></summary>
           
           ```ts
-          import { createServerClient } from '@supabase/ssr'
-          import { NextResponse, type NextRequest } from 'next/server'
+          import { createServerClient } from "@supabase/ssr";
+          import { NextResponse, type NextRequest } from "next/server";
 
           // Define the route that contains your login page
-          const loginPage = '/login'
+          const loginPage = "/login";
 
           // Add any public (non-login protected) routes here
           // All other routes will be login protected
           // Important: plasmic-host and your login page must always be public
           const publicRoutes = [
-            '/',
-            '/login',
-            '/plasmic-host'
-          ]
+            "/", 
+            "/login", 
+            "/otp-request-confirmation",
+            "/signup",
+            "/signup-confirmation",
+            "/plasmic-host"
+          ];
 
           // Middleware function
           // This will run on every request to your app that matches the pattern at the bottom of this file
           // Adapted from @supabase/ssr docs https://supabase.com/docs/guides/auth/server-side/nextjs?queryGroups=router&router=app
           export async function middleware(request: NextRequest) {
-
             let supabaseResponse = NextResponse.next({
               request,
-            })
+            });
 
             //Create a new supabase client
             //Refresh expired auth tokens and set new cookies
@@ -219,20 +287,22 @@ In this section, we'll fix this issue so that we can define both public and logi
               {
                 cookies: {
                   getAll() {
-                    return request.cookies.getAll()
+                    return request.cookies.getAll();
                   },
                   setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                      request.cookies.set(name, value)
+                    );
                     supabaseResponse = NextResponse.next({
                       request,
-                    })
+                    });
                     cookiesToSet.forEach(({ name, value, options }) =>
                       supabaseResponse.cookies.set(name, value, options)
-                    )
+                    );
                   },
                 },
               }
-            )
+            );
 
             // IMPORTANT: Avoid writing any logic between createServerClient and
             // supabase.auth.getUser(). A simple mistake could make it very hard to debug
@@ -241,22 +311,21 @@ In this section, we'll fix this issue so that we can define both public and logi
             // Get details of the logged in user if present
             const {
               data: { user },
-            } = await supabase.auth.getUser()
-            
+            } = await supabase.auth.getUser();
+
             // Decide whether to redirect to the /login page or not
             // You can adapt this logic to suit your needs
 
             if (publicRoutes.includes(request.nextUrl.pathname) !== true && !user) {
-              // It's a login protected route but there's no logged in user. 
+              // It's a login protected route but there's no logged in user.
               // Respond by redirecting the user to the login page
-              const url = request.nextUrl.clone()
+              const url = request.nextUrl.clone();
               url.pathname = loginPage;
-              return NextResponse.redirect(url)
-
+              return NextResponse.redirect(url);
             } else {
-              // It's a public route, or it's a login protected route and there is a logged in user. 
+              // It's a public route, or it's a login protected route and there is a logged in user.
               // Proceed as normal
-              return supabaseResponse
+              return supabaseResponse;
             }
 
             // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
@@ -271,7 +340,6 @@ In this section, we'll fix this issue so that we can define both public and logi
             //    return myNewResponse
             // If this is not done, you may be causing the browser and server to go out
             // of sync and terminate the user's session prematurely!
-
           }
 
           //Only run middleware on requests that match this pattern
@@ -284,9 +352,10 @@ In this section, we'll fix this issue so that we can define both public and logi
               * - favicon.ico (favicon file)
               * Feel free to modify this pattern to include more paths.
               */
-              '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+              "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
             ],
-          }
+          };
+
           ```
         </details>
     4. Middleware is best tested in a production build because it behaves differently in development. Therefore build and start a local production version of your app by running:
@@ -348,3 +417,63 @@ You can also implement any other authorization logic you need, for example `role
 
 Further guidance on implementing role-based access control and similar may be added in a future update of this package.
 
+## API Reference
+(This section is under construction)
+
+### Loading states
+SupabaseProvider components expose an `isLoading` and `isMutating` context values, which you can use to show the user when loading or mutation is occurring. 
+
+See [THIS VIDEO](https://drive.google.com/open?id=1-RQsiQ_9lABrUkPtWadN6kfbjopaCQXJ&usp=drive_fs) for a short demo.
+
+### SupabaseProvider: onSuccess and onError callbacks
+
+The `SupabaseProvider` component exposes `onSuccess` and `onError` interaction hooks, which you can use to run actions when any mutation that uses the `SupabaseProvider` succeeds, or when any error within the `SupabaseProvider` occurs.
+
+See [THIS VIDEO](https://drive.google.com/open?id=1bGywmDby4_5ABCIdyxx_qYJJhdXHpkeb&usp=drive_fs) for a short demo.
+
+### SupabaseProvider: running actions after a mutation
+
+After running a mutation action in the `SupabaseProvider` component, you can run additional actions. When the subsequent actions run & what data they have access to depends on how you configure the original mutation action.
+
+| Prop in SupabaseProvider mutation | What it does | 
+|------|-------------|
+| Return mutated row? | Whether to return the mutated row after the mutation has finished. This new row data then becomes available to subsequent actions (if they run after mutation has finished) | 
+| Run next action immediately without waiting for mutation to finish? | Whether to run subsequent actions immediately, without waiting for the mutation to finish. This means that the subsequent actions will NOT have access to the status (success or failure) of the mutation nor any returned data from it |
+
+See [THIS VIDEO](https://drive.google.com/open?id=17e0QtqPfX7ohmzjh7TboCcjO5KWlHMM-&usp=drive_fs) for a demo on how to configure and use actions after mutation.
+
+### Static site generation (SSG) & incremental static regeneration (ISR)
+
+The below section assumes you are using the default Nextjs Loader API implementation method with Plasmic.
+
+Plasmic-supabase fetches data using `useMutablePlasmicQueryData` hook (which works the same as `usePlasmicQueryData`) as shown in the [Plasmic docs on fetching data from code components](https://docs.plasmic.app/learn/data-code-components/#fetching-data-from-your-code-components).
+
+This means that incremental static regeneration (ISR) or static-site generation (SSG) will work as expected on pages that use a `SupabaseProvider` component (as long as the Supabase query allows for public access).
+
+In simplified terms, nextjs will fetch data from Supabase & cache it server-side. This cached data means that the server can send HTML filled with dynamic data when a user (or a search engine) requests a particular page of your app.
+
+All of this is good for SEO on public-facing pages.
+
+Server-side fetch and cache of data will only work for Supabase queries where RLS policies allow non-login-protected access because server-side fetch and cache operates via the catchall page's `getStaticProps` function, which does not have access to the logged in user's session.
+
+You don't need to change any settings in `plasmic-supabase` when working with Login-protected data, because the `useMutablePlasmicQueryData` hook (when run server-side) will silently fail, leading to no data being cached server-side. However, data will still be fetched client-side as expected.
+
+In advanced cases, you can disable server-side fetch and cache for a `SupabaseProvider` component by setting the `disableServerSideFetch` prop to `true`. 
+
+For a deep-dive into ISR / SSG with plasmic-supabase in Plasmic with Nextjs Loader API implementation, see [THIS VIDEO](https://drive.google.com/open?id=15DSD0aEjvwuS1JWzmKVmYqcSJUwcmDyf&usp=drive_fs)
+
+### `createClient` Supabase methods
+4x createClient methods are exported from `plasmic-supabase` to use in your project code if you require them.
+
+These can be imported like so
+
+```ts
+import { createStaticPropsClient } from 'plasmic-supabase';
+import { createComponentClient } from 'plasmic-supabase';
+import { createApiClient } from 'plasmic-supabase';
+import { createServerPropsClient } from 'plasmic-supabase';
+```
+
+These methods are created to match the [Supabase SSR Nextjs Pages router docs](https://supabase.com/docs/guides/auth/server-side/nextjs?queryGroups=router&router=pages) and can be used as if you defined them directly in your project utils.
+
+Note that the `createComponentClient` is slightly different to the official Supabase recommended version in order to work with Plasmic studio properly. See the [createClient.ts](https://github.com/CallumBoase/plasmic-supabase/blob/main/src/utils/supabase/component.ts) file for details.

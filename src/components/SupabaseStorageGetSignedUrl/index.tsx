@@ -5,7 +5,7 @@ import React, {
   useImperativeHandle,
   useCallback,
 } from "react";
-import { DataProvider } from "@plasmicapp/loader-nextjs";
+import { DataProvider } from "@plasmicapp/host";
 import useSWR from "swr";
 import createClient from "../../utils/supabase/component";
 import getErrMsg from "../../utils/getErrMsg";
