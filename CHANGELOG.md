@@ -1,5 +1,9 @@
 # Changelog
 
+## 2025-06-23: Version 0.5.0 -> 0.5.1
+This release does not contain any breaking changes
+* Change `package.json` to point to new repo location: https://github.com/plasmic-supabase/plasmic-supabase.git
+
 ## 2025-03-27: Version 0.4.1 -> 0.5.0
 This release contains breaking changes:
 

@@ -1,6 +1,6 @@
 {
   "name": "plasmic-supabase",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Code components to use Supabase as a backend for a Plasmic app",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -62,12 +62,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CallumBoase/plasmic-supabase.git"
+    "url": "git+https://github.com/plasmic-supabase/plasmic-supabase.git"
   },
   "author": "Callum Boase, Ryan Mouritz",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/CallumBoase/plasmic-supabase/issues"
+    "url": "https://github.com/plasmic-supabase/plasmic-supabase/issues"
   },
-  "homepage": "https://github.com/CallumBoase/plasmic-supabase#readme"
+  "homepage": "https://github.com/plasmic-supabase/plasmic-supabase#readme"
 }
